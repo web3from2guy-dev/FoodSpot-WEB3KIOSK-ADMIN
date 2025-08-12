@@ -1,39 +1,385 @@
-<!-- index.html file for the Admin Dashboard repository -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- The title will be set dynamically -->
-    <title id="page-title">Admin/Chef Dashboard</title>
-    <!-- Load the dynamically generated config file -->
-    <script src="config.js"></script>
-    <!-- Add a fallback configuration object if config.js is not loaded -->
-    <script>
-        if (typeof window.config === 'undefined') {
-            window.config = {
-                customerName: "Your Business Title",
-                siteBaseUrl: "https://web3from2guy-dev.github.io/startmenu-WEB2FOOD1-/"
-            };
-        }
-    </script>
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* Dark slate background */
-            color: #e2e8f0; /* Light gray text */
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-        .admin-btn {
-            position: absolute;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Food Spot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>body{font-family:Inter,ui-sans-serif,system-ui;background:#0b1220;color:#e6eef8}</style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-4xl mx-auto">
+    <div id="top-bar" class="flex items-center justify-between mb-4">
+      <a id="back-to-start" href="../index.html" class="px-3 py-2 bg-gray-700 rounded text-white hover:bg-gray-600"><i class="fas fa-arrow-left mr-2"></i>Back</a>
+      <div class="flex gap-2">
+        <button id="export-config-btn" class="px-3 py-2 bg-blue-600 rounded text-white hidden"><i class="fas fa-file-export mr-2"></i>Export Config</button>
+        <button id="reset-setup-btn" class="px-3 py-2 bg-red-600 rounded text-white hidden"><i class="fas fa-undo mr-2"></i>Reset Setup</button>
+      </div>
+    </div>
+
+    <h1 id="page-heading" class="text-3xl font-bold text-purple-300 mb-6 text-center">Admin Dashboard</h1>
+
+    <!-- SETUP FORM (shown if no config) -->
+    <div id="setup-container" class="bg-gray-800 p-6 rounded-lg shadow mb-6 hidden">
+      <h2 class="text-xl font-semibold mb-3">First-time setup</h2>
+      <p class="text-gray-300 mb-4">Create your admin PIN (exactly 15 characters) and add 2–10 products that will populate your kiosk.</p>
+
+      <div class="mb-4">
+        <label class="block text-sm text-gray-300 mb-1">Create 15-character Admin PIN</label>
+        <input id="setup-pin" maxlength="15" placeholder="Enter 15 characters" class="w-full p-3 rounded bg-gray-700 placeholder-gray-400 text-white" />
+        <p id="pin-hint" class="text-xs text-gray-400 mt-2">Use letters and numbers. Keep this safe.</p>
+      </div>
+
+      <div>
+        <h3 class="text-lg font-medium text-gray-200 mb-2">Products (2–10)</h3>
+        <div id="products-list" class="space-y-3"></div>
+        <div class="flex gap-2 mt-3">
+          <button id="add-product-btn" class="px-4 py-2 bg-indigo-600 rounded text-white">Add product</button>
+          <button id="auto-fill-btn" class="px-4 py-2 bg-gray-600 rounded text-white">Auto-fill sample</button>
+        </div>
+        <p id="product-error" class="text-red-400 mt-2 hidden">Add at least 2 products (max 10).</p>
+      </div>
+
+      <div class="mt-6 text-right">
+        <button id="finish-setup-btn" class="px-6 py-3 bg-green-600 rounded text-white font-bold">Finish setup</button>
+      </div>
+    </div>
+
+    <!-- LOGIN SECTION (shown after setup saved) -->
+    <div id="login-container" class="bg-gray-800 p-6 rounded-lg shadow mb-6 hidden">
+      <p class="text-gray-300 mb-4">Enter your admin PIN to access the dashboard:</p>
+      <input id="admin-pin-input" type="password" placeholder="Enter PIN" class="w-full p-3 rounded bg-gray-700 text-white" />
+      <div class="mt-4 text-right">
+        <button id="admin-login-btn" class="px-4 py-2 bg-purple-600 rounded text-white font-semibold">Login</button>
+      </div>
+      <p id="login-msg" class="text-red-400 mt-3 hidden">Incorrect PIN.</p>
+    </div>
+
+    <!-- DASHBOARD (after login) -->
+    <div id="dashboard-container" class="hidden">
+      <h2 class="text-2xl font-semibold text-green-300 mb-4">Order Status Overview</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="bg-gray-700 p-4 rounded admin-column">
+          <h3 class="font-semibold text-gray-200 mb-2">Pending Payments</h3>
+          <div id="new-orders-list" class="space-y-2 max-h-64 overflow-auto">
+            <p class="text-gray-400">No new orders.</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-700 p-4 rounded admin-column">
+          <h3 class="font-semibold text-gray-200 mb-2">In Progress</h3>
+          <div id="in-progress-orders-list" class="space-y-2 max-h-64 overflow-auto">
+            <p class="text-gray-400">No orders in progress.</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-700 p-4 rounded admin-column">
+          <h3 class="font-semibold text-gray-200 mb-2">Completed</h3>
+          <div id="completed-orders-list" class="space-y-2 max-h-64 overflow-auto">
+            <p class="text-gray-400">No completed orders.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="save-orders-btn" class="px-4 py-2 bg-blue-600 rounded text-white"><i class="fas fa-save mr-2"></i>Save Completed (copy)</button>
+        <button id="clear-orders-btn" class="px-4 py-2 bg-red-600 rounded text-white"><i class="fas fa-trash mr-2"></i>Clear All Orders</button>
+      </div>
+
+      <hr class="my-6 border-gray-700" />
+
+      <div class="bg-gray-800 p-4 rounded">
+        <h3 class="text-lg font-medium text-gray-200 mb-3">Store Settings</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-gray-300">Store name</label>
+            <input id="store-name" class="w-full p-2 rounded bg-gray-700 text-white" />
+          </div>
+          <div>
+            <label class="text-sm text-gray-300">Public link (optional)</label>
+            <input id="store-url" class="w-full p-2 rounded bg-gray-700 text-white" />
+          </div>
+        </div>
+        <div class="mt-4 text-right">
+          <button id="save-settings-btn" class="px-4 py-2 bg-indigo-600 rounded text-white">Save settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/*
+  Data model stored in localStorage under key: foodSpotConfig
+  {
+    adminPin: "15chars",
+    storeName: "My Shop",
+    products: [ {id,name,description,price,imageUrl} ... ],
+    orders: [ ... ]  // optional, used by admin to manage runtime orders
+  }
+*/
+
+const STORAGE_KEY = 'foodSpotConfig_v1';
+
+function readConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch(e) {
+    return null;
+  }
+}
+function saveConfig(cfg) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+}
+
+function downloadJSON(obj, filename='config.json') {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+/* UI elements */
+const setupContainer = document.getElementById('setup-container');
+const productsList = document.getElementById('products-list');
+const addProductBtn = document.getElementById('add-product-btn');
+const finishSetupBtn = document.getElementById('finish-setup-btn');
+const autoFillBtn = document.getElementById('auto-fill-btn');
+const productError = document.getElementById('product-error');
+
+const loginContainer = document.getElementById('login-container');
+const adminPinInput = document.getElementById('admin-pin-input');
+const adminLoginBtn = document.getElementById('admin-login-btn');
+const loginMsg = document.getElementById('login-msg');
+
+const dashboardContainer = document.getElementById('dashboard-container');
+const exportBtn = document.getElementById('export-config-btn');
+const resetBtn = document.getElementById('reset-setup-btn');
+
+const pageHeading = document.getElementById('page-heading');
+
+let workingProducts = [];
+
+function createProductRow(product = {}) {
+  const id = product.id || ('p' + Math.random().toString(36).slice(2,9));
+  const wrapper = document.createElement('div');
+  wrapper.className = 'bg-gray-700 p-3 rounded flex gap-3 items-start';
+  wrapper.dataset.pid = id;
+  wrapper.innerHTML = `
+    <div class="flex-1">
+      <input placeholder="Name" class="w-full p-2 mb-2 rounded bg-gray-600 text-white product-name" value="${product.name || ''}"/>
+      <input placeholder="Price (USD)" class="w-full p-2 mb-2 rounded bg-gray-600 text-white product-price" value="${product.price !== undefined ? product.price : ''}"/>
+      <input placeholder="Image URL" class="w-full p-2 mb-2 rounded bg-gray-600 text-white product-image" value="${product.imageUrl || ''}"/>
+      <textarea placeholder="Short description" class="w-full p-2 rounded bg-gray-600 text-white product-desc">${product.description || ''}</textarea>
+    </div>
+    <div class="flex flex-col gap-2">
+      <button class="remove-prod px-3 py-2 bg-red-600 rounded text-white">Remove</button>
+    </div>
+  `;
+  wrapper.querySelector('.remove-prod').addEventListener('click', () => {
+    wrapper.remove();
+  });
+  return wrapper;
+}
+
+function renderProductInputs() {
+  productsList.innerHTML = '';
+  workingProducts.forEach(p => {
+    productsList.appendChild(createProductRow(p));
+  });
+}
+
+function gatherProductsFromUI() {
+  const nodes = Array.from(productsList.querySelectorAll('[data-pid]'));
+  const out = nodes.map(n => {
+    const name = n.querySelector('.product-name').value.trim();
+    const price = parseFloat(n.querySelector('.product-price').value || '0');
+    const imageUrl = n.querySelector('.product-image').value.trim();
+    const description = n.querySelector('.product-desc').value.trim();
+    return {
+      id: n.dataset.pid,
+      name, price, imageUrl, description
+    };
+  }).filter(p => p.name && !isNaN(p.price));
+  return out;
+}
+
+/* Setup logic */
+function showSetup() {
+  setupContainer.classList.remove('hidden');
+  loginContainer.classList.add('hidden');
+  dashboardContainer.classList.add('hidden');
+  exportBtn.classList.add('hidden');
+  resetBtn.classList.add('hidden');
+}
+
+function showLogin() {
+  setupContainer.classList.add('hidden');
+  loginContainer.classList.remove('hidden');
+  dashboardContainer.classList.add('hidden');
+  exportBtn.classList.remove('hidden');
+  resetBtn.classList.remove('hidden');
+}
+
+function showDashboard(cfg) {
+  setupContainer.classList.add('hidden');
+  loginContainer.classList.add('hidden');
+  dashboardContainer.classList.remove('hidden');
+  exportBtn.classList.remove('hidden');
+  resetBtn.classList.remove('hidden');
+  // apply store name if exists
+  if (cfg.storeName) {
+    pageHeading.textContent = cfg.storeName + ' — Admin Dashboard';
+    document.getElementById('store-name').value = cfg.storeName;
+  } else {
+    pageHeading.textContent = 'Admin Dashboard';
+  }
+  document.getElementById('store-url').value = cfg.storeUrl || '';
+  // render orders if present
+  renderOrders(cfg.orders || []);
+}
+
+/* Orders UI (simple) */
+function renderOrders(orders) {
+  const newList = document.getElementById('new-orders-list');
+  const inProg = document.getElementById('in-progress-orders-list');
+  const done = document.getElementById('completed-orders-list');
+  newList.innerHTML = ''; inProg.innerHTML = ''; done.innerHTML = '';
+
+  if (!orders || orders.length === 0) {
+    newList.innerHTML = '<p class="text-gray-400">No new orders.</p>';
+    inProg.innerHTML = '<p class="text-gray-400">No orders in progress.</p>';
+    done.innerHTML = '<p class="text-gray-400">No completed orders.</p>';
+    return;
+  }
+  orders.forEach(order => {
+    const div = document.createElement('div');
+    div.className = 'bg-gray-600 p-3 rounded mb-2';
+    div.innerHTML = `<div class="text-sm text-gray-300 mb-1">ID: ${order.id}</div>
+      <div class="text-sm text-gray-200 font-semibold">Total: $${(order.total||0).toFixed(2)}</div>
+      <div class="text-xs text-gray-400 mt-2">${(order.items||[]).map(i=>i.name + ' x' + i.quantity).join(', ')}</div>
+    `;
+    if (order.status === 'new') newList.appendChild(div);
+    else if (order.status === 'in-progress') inProg.appendChild(div);
+    else done.appendChild(div);
+  });
+}
+
+/* Start: check config */
+const existingCfg = readConfig();
+if (!existingCfg) {
+  // no setup yet -> show setup form
+  showSetup();
+  // start with two empty product rows
+  workingProducts = [{},{},]; // 2 default
+  renderProductInputs();
+} else {
+  // setup exists -> show login
+  showLogin();
+}
+
+/* Events */
+addProductBtn.addEventListener('click', () => {
+  if (productsList.querySelectorAll('[data-pid]').length >= 10) return;
+  const row = createProductRow({});
+  productsList.appendChild(row);
+});
+autoFillBtn.addEventListener('click', () => {
+  workingProducts = [
+    { name: 'Classic Burger', price: 9.99, imageUrl: 'https://placehold.co/400x200/4a5568/a0aec0?text=Burger', description: 'Juicy 100% beef patty' },
+    { name: 'Crispy Fries', price: 3.49, imageUrl: 'https://placehold.co/400x200/4a5568/a0aec0?text=Fries', description: 'Golden fries' }
+  ];
+  renderProductInputs();
+});
+
+finishSetupBtn.addEventListener('click', () => {
+  const pin = document.getElementById('setup-pin').value.trim();
+  if (pin.length !== 15) {
+    alert('Admin PIN must be exactly 15 characters.');
+    return;
+  }
+  const products = gatherProductsFromUI();
+  if (products.length < 2) {
+    productError.classList.remove('hidden');
+    return;
+  }
+  productError.classList.add('hidden');
+
+  const cfg = {
+    adminPin: pin,
+    storeName: 'My Food Spot',
+    storeUrl: '',
+    products,
+    orders: []
+  };
+  saveConfig(cfg);
+  alert('Setup complete. You will be taken to login.');
+  showLogin();
+});
+
+adminLoginBtn.addEventListener('click', () => {
+  const cfg = readConfig();
+  if (!cfg) {
+    alert('No setup found. Please complete setup.');
+    showSetup();
+    return;
+  }
+  const attempt = adminPinInput.value.trim();
+  if (attempt === cfg.adminPin) {
+    loginMsg.classList.add('hidden');
+    showDashboard(cfg);
+  } else {
+    loginMsg.classList.remove('hidden');
+  }
+});
+
+exportBtn.addEventListener('click', () => {
+  const cfg = readConfig();
+  if (!cfg) { alert('No config found'); return; }
+  downloadJSON(cfg, 'foodspot-config.json');
+});
+
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Resetting will remove the saved configuration on this site. Continue?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+});
+
+/* Save settings (store name / url) */
+document.getElementById('save-settings-btn').addEventListener('click', () => {
+  const cfg = readConfig();
+  if (!cfg) return alert('No config.');
+  cfg.storeName = document.getElementById('store-name').value.trim();
+  cfg.storeUrl = document.getElementById('store-url').value.trim();
+  saveConfig(cfg);
+  alert('Settings saved.');
+  pageHeading.textContent = cfg.storeName ? cfg.storeName + ' — Admin Dashboard' : 'Admin Dashboard';
+});
+
+/* Clear orders */
+document.getElementById('clear-orders-btn').addEventListener('click', () => {
+  if (!confirm('Clear all orders?')) return;
+  const cfg = readConfig();
+  if (!cfg) return;
+  cfg.orders = [];
+  saveConfig(cfg);
+  renderOrders([]);
+});
+
+/* Save completed orders to clipboard (copy) */
+document.getElementById('save-orders-btn').addEventListener('click', () => {
+  const cfg = readConfig();
+  if (!cfg) return alert('No data.');
+  const completed = (cfg.orders || []).filter(o => o.status === 'completed');
+  if (completed.length === 0) return alert('No completed orders.');
+  navigator.clipboard.writeText(JSON.stringify(completed,null,2)).then(()=> alert('Copied to clipboard.'));
+});
+
+</script>
+</body>
+</html>
             top: 1rem;
             left: 1rem;
             padding: 0.5rem 1rem;
