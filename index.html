@@ -648,15 +648,32 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             // Start Page buttons
-            if(startKioskBtn) startKioskBtn.addEventListener('click', () => showPage('kiosk-page'));
-            if(startAdminBtn) startAdminBtn.addEventListener('click', () => showPage('admin-page'));
+            // --- FIX: The previous code was missing the event listeners inside the DOMContentLoaded block
+            if(startKioskBtn) startKioskBtn.addEventListener('click', () => {
+                console.log('Customer Kiosk button clicked');
+                showPage('kiosk-page');
+            });
+            if(startAdminBtn) startAdminBtn.addEventListener('click', () => {
+                console.log('Admin Dashboard button clicked');
+                showPage('admin-page');
+            });
             
             // Kiosk page buttons
-            if(kioskBackBtn) kioskBackBtn.addEventListener('click', () => showPage('start-page'));
+            if(kioskBackBtn) kioskBackBtn.addEventListener('click', () => {
+                console.log('Back button clicked from Kiosk');
+                showPage('start-page');
+            });
             if(payBtn) payBtn.addEventListener('click', processPayment);
             
             // Admin page buttons
-            if(adminBackBtn) adminBackBtn.addEventListener('click', () => showPage('start-page'));
+            if(adminBackBtn) adminBackBtn.addEventListener('click', () => {
+                console.log('Back button clicked from Admin');
+                isLoggedIn = false;
+                adminLoginPasswordInput.value = '';
+                adminDashboardContent.classList.add('hidden');
+                adminLogin.classList.remove('hidden');
+                showPage('start-page');
+            });
             if(loginBtn) loginBtn.addEventListener('click', () => {
                 if (!isAuthReady) {
                     showModal('Error', 'Application is not ready. Please wait a moment and try again.');
