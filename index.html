@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Vendor Admin Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ethers.js for blockchain interaction (Updated to v6) -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+<!-- PAYWALL -->
+<div id="paywall" class="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+    <div id="status-message" class="hidden bg-blue-800 text-blue-200 p-4 rounded-lg mb-4 text-sm" role="alert">
+        Awaiting action...
+    </div>
+    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 max-w-lg text-center">
+        <h2 class="font-bold text-lg mb-2">Payment Required</h2>
+        <p>This application only accepts a **$5.00** payment in **USDC** on the **Polygon Network**.</p>
+        <p class="mt-2">Transactions sent in any other token or network will be lost and cannot be recovered.</p>
+    </div>
+    <button id="connectWallet" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold">
+        Connect Wallet & Pay
+    </button>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="dashboard" class="hidden p-6">
+    <h1 class="text-3xl font-bold mb-4">Welcome Admin</h1>
+    <p class="mb-6">This is your admin dashboard after successful payment.</p>
+
+    <!-- Example Password Creation Section -->
+    <div class="bg-gray-800 p-4 rounded-lg mb-4">
+        <h2 class="text-xl mb-2">Create New Admin Password</h2>
+        <input id="adminPassword" type="password" placeholder="Enter new password" class="p-2 rounded text-black w-full mb-2">
+        <button class="bg-green-600 px-4 py-2 rounded">Save Password</button>
+    </div>
+
+    <!-- Example Product Upload Section -->
+    <div class="bg-gray-800 p-4 rounded-lg">
+        <h2 class="text-xl mb-2">Upload Product</h2>
+        <input type="text" placeholder="Product Name" class="p-2 rounded text-black w-full mb-2">
+        <input type="file" class="p-2 rounded text-black w-full mb-2">
+        <button class="bg-blue-600 px-4 py-2 rounded">Upload</button>
+    </div>
+</div>
+
+<script>
+    // --- DOM Elements and State ---
+    const connectWalletBtn = document.getElementById("connectWallet");
+    const paywallDiv = document.getElementById("paywall");
+    const dashboardDiv = document.getElementById("dashboard");
+    const statusMessageDiv = document.getElementById("status-message");
+
+    // --- Configuration ---
+    const USDC_POLYGON_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+    const PAYMENT_AMOUNT = "5.00"; // Amount in USDC as a string
+    const RECEIVING_WALLET = "YOUR_WALLET_ADDRESS_HERE"; // Replace with your wallet
+
+    // The ABI for the `transfer` function
+    const usdcAbi = ["function transfer(address to, uint256 amount) returns (bool)"];
+    const polygonChainId = '0x89'; // 137 in hex
+
+    // --- Utility Functions ---
+    const updateStatus = (message, type = 'info') => {
+        statusMessageDiv.textContent = message;
+        statusMessageDiv.classList.remove('hidden');
+        statusMessageDiv.classList.remove('bg-blue-800', 'bg-green-800', 'bg-yellow-800', 'bg-red-800', 
+                                         'text-blue-200', 'text-green-200', 'text-yellow-200', 'text-red-200');
+        
+        switch (type) {
+            case 'info':
+                statusMessageDiv.classList.add('bg-blue-800', 'text-blue-200');
+                break;
+            case 'success':
+                statusMessageDiv.classList.add('bg-green-800', 'text-green-200');
+                break;
+            case 'warning':
+                statusMessageDiv.classList.add('bg-yellow-800', 'text-yellow-200');
+                break;
+            case 'error':
+                statusMessageDiv.classList.add('bg-red-800', 'text-red-200');
+                break;
+        }
+    };
+    
+    // --- Main Logic ---
+    async function payWithUSDC() {
+        if (typeof window.ethereum === "undefined") {
+            updateStatus("Please install MetaMask to proceed.", "error");
+            return;
+        }
+
+        connectWalletBtn.disabled = true;
+        updateStatus("Connecting to MetaMask...", "info");
+
+        try {
+            // Ethers v6 syntax for provider and signer
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+
+            // Ensure Polygon Network
+            await switchNetworkToPolygon();
+
+            const usdcContract = new ethers.Contract(USDC_POLYGON_ADDRESS, usdcAbi, signer);
+
+            const decimals = 6;
+            // Ethers v6 syntax for parsing units
+            const amountInUnits = ethers.parseUnits(PAYMENT_AMOUNT, decimals);
+
+            updateStatus("Please confirm the transaction in MetaMask...", "warning");
+            
+            const tx = await usdcContract.transfer(RECEIVING_WALLET, amountInUnits);
+            await tx.wait();
+
+            updateStatus("Payment successful! Accessing dashboard...", "success");
+            localStorage.setItem("paymentComplete", "true");
+            showDashboard();
+            
+        } catch (err) {
+            updateStatus(`Payment failed: ${err.message}`, "error");
+            console.error(err);
+        } finally {
+            connectWalletBtn.disabled = false;
+        }
+    }
+
+    async function switchNetworkToPolygon() {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: polygonChainId }],
+            });
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: polygonChainId,
+                            chainName: 'Polygon Mainnet',
+                            rpcUrls: ['https://polygon-rpc.com/'],
+                            nativeCurrency: {
+                                name: 'MATIC',
+                                symbol: 'MATIC',
+                                decimals: 18
+                            },
+                            blockExplorerUrls: ['https://polygonscan.com/']
+                        }],
+                    });
+                } catch (addError) {
+                    throw new Error('Failed to add Polygon network to MetaMask.');
+                }
+            } else {
+                throw new Error('Failed to switch to Polygon network.');
+            }
+        }
+    };
+
+    function showDashboard() {
+        paywallDiv.classList.add("hidden");
+        dashboardDiv.classList.remove("hidden");
+    }
+
+    // --- Event Listeners ---
+    document.addEventListener("DOMContentLoaded", () => {
+        connectWalletBtn.addEventListener("click", payWithUSDC);
+        // Skip paywall if already paid
+        if (localStorage.getItem("paymentComplete") === "true") {
+            showDashboard();
+        }
+    });
+</script>
+
+</body>
+</html>
