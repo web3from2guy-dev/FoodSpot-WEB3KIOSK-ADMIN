@@ -3,111 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Food Spot - Admin</title>
+    <title>Your Food Spot - All in One</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col">
-    <!-- Back button for Admin page -->
-    <header class="p-4">
-        <button onclick="window.location.href='start.html'" class="text-gray-400 hover:text-white transition">
-            <i class="fas fa-arrow-left"></i> Back to Start
-        </button>
-    </header>
+<body class="bg-gray-900 text-white min-h-screen p-6">
 
-    <!-- === 2. ADMIN DASHBOARD === -->
-    <div id="admin-page" class="p-6 flex-grow max-w-5xl mx-auto w-full">
-        <div id="admin-login" class="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto mt-20">
-            <h1 class="text-3xl font-bold mb-4 text-center">Admin Login</h1>
-            <p id="admin-status-message" class="mb-6 text-center text-gray-400">Loading admin status...</p>
+    <div id="main-container" class="flex flex-col min-h-screen">
+
+        <!-- === 1. START PAGE === -->
+        <div id="start-page" class="flex flex-col items-center justify-center flex-grow">
+            <div class="max-w-lg w-full bg-gray-800 p-10 rounded-2xl shadow-2xl text-center">
+                <h1 class="text-4xl font-extrabold text-yellow-400 mb-4">Welcome to Your Food Spot</h1>
+                <p class="text-gray-300 mb-8">Choose your role to continue</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button id="start-kiosk-btn" class="px-6 py-3 bg-indigo-600 rounded-xl text-white font-semibold hover:bg-indigo-700 transition">
+                        <i class="fas fa-utensils mr-2"></i> Customer Kiosk
+                    </button>
+                    <button id="start-admin-btn" class="px-6 py-3 bg-purple-600 rounded-xl text-white font-semibold hover:bg-purple-700 transition">
+                        <i class="fas fa-user-shield mr-2"></i> Admin Dashboard
+                    </button>
+                </div>
+                <p class="text-gray-400 mt-6 text-sm">Each deployed copy keeps its own configuration.</p>
+            </div>
+        </div>
+        
+        <!-- === 2. CUSTOMER KIOSK & PAYWALL === -->
+        <div id="kiosk-page" class="min-h-screen hidden">
+            <header class="bg-gray-800 p-6 text-center rounded-b-xl mb-6">
+                <button id="kiosk-back-btn" class="absolute left-4 top-6 text-gray-400 hover:text-white transition">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <h1 id="kiosk-store-title" class="text-3xl font-extrabold text-yellow-400">The Food Spot</h1>
+            </header>
             
-            <div id="password-input-container" class="mb-4">
-                <label for="adminLoginPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                <input 
-                    id="adminLoginPassword" 
-                    type="password" 
-                    placeholder="Enter password" 
-                    class="p-3 rounded-lg text-black w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-                >
-            </div>
-
-            <!-- This section will only appear for first-time setup -->
-            <div id="wallet-address-container" class="hidden mb-4">
-                <label for="usdcWalletAddress" class="block text-sm font-medium text-gray-300 mb-2">USDC Receiving Wallet Address</label>
-                <input 
-                    id="usdcWalletAddress" 
-                    type="text" 
-                    placeholder="Enter your USDC wallet address" 
-                    class="p-3 rounded-lg text-black w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-                >
-            </div>
-
-            <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition duration-200">
-                Login
-            </button>
+            <main class="container mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <section class="lg:col-span-2">
+                    <h2 class="text-2xl text-indigo-300 mb-4">Our Menu</h2>
+                    <div id="menu-items" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div id="loading-kiosk-menu" class="p-6 bg-gray-700 rounded text-center">Loading menu...</div>
+                    </div>
+                </section>
+        
+                <aside class="bg-gray-800 p-4 rounded-xl lg:col-span-1 h-fit sticky top-6">
+                    <h3 class="text-xl text-green-300 mb-4">Your Order</h3>
+                    <div id="order-list" class="space-y-3 min-h-[120px]">
+                        <p class="text-gray-400">No items yet.</p>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between mb-2"><span>Platform Fee</span><span>0.01 USDC</span></div>
+                        <div class="flex justify-between mb-2"><span>Total (USD)</span><span id="total-usd">$0.00</span></div>
+                        <div class="flex justify-between mb-4"><span>Total (USDC incl. fee)</span><span id="total-usdc">0.00 USDC</span></div>
+                        <button id="pay-btn" class="w-full py-3 bg-indigo-600 rounded-xl text-white font-bold transition disabled:opacity-50" disabled>
+                            <i class="fas fa-wallet mr-2"></i>Pay with Polygon
+                        </button>
+                    </div>
+                </aside>
+            </main>
         </div>
 
-        <div id="admin-dashboard-content" class="hidden">
-            <header class="flex justify-between items-center bg-gray-800 p-4 rounded-xl mb-6">
-                <div class="flex items-center space-x-4">
-                    <h1 class="text-3xl font-bold">Admin Dashboard</h1>
-                    <span id="store-title-display" class="text-lg text-yellow-400"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">Logout</button>
-                </div>
+        <!-- === 3. ADMIN DASHBOARD === -->
+        <div id="admin-page" class="p-6 flex-grow max-w-5xl mx-auto w-full hidden">
+            <header class="p-4">
+                <button id="admin-back-btn" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-arrow-left"></i> Back to Start
+                </button>
             </header>
 
-            <!-- Store Information Section -->
-            <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
-                <h2 class="text-2xl font-bold mb-4">Store Information</h2>
-                <p id="user-id-display" class="text-sm text-gray-400 mb-4"></p>
-                <div class="space-y-4">
-                    <div>
-                        <label for="storeName" class="block text-sm font-medium text-gray-300 mb-2">Store Name</label>
-                        <input id="storeName" type="text" placeholder="e.g., Downtown Eats" class="p-3 rounded-lg text-black w-full">
-                    </div>
-                    <div>
-                        <label for="storeLogo" class="block text-sm font-medium text-gray-300 mb-2">Store Logo URL</label>
-                        <input id="storeLogo" type="text" placeholder="e.g., https://your-logo.com/logo.png" class="p-3 rounded-lg text-black w-full">
-                    </div>
-                    <div>
-                        <label for="usdcWalletAddressInput" class="block text-sm font-medium text-gray-300 mb-2">USDC Receiving Wallet Address</label>
-                        <input id="usdcWalletAddressInput" type="text" placeholder="Enter your USDC wallet address" class="p-3 rounded-lg text-black w-full">
-                    </div>
-                    <button id="saveStoreInfoBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Save Store Info</button>
+            <div id="admin-login" class="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto mt-20">
+                <h1 class="text-3xl font-bold mb-4 text-center">Admin Login</h1>
+                <p id="admin-status-message" class="mb-6 text-center text-gray-400">Enter the admin password to continue.</p>
+                <div id="password-input-container" class="mb-4">
+                    <label for="adminLoginPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input 
+                        id="adminLoginPassword" 
+                        type="password" 
+                        placeholder="Enter password" 
+                        class="p-3 rounded-lg text-black w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    >
                 </div>
+                <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition duration-200">
+                    Login
+                </button>
             </div>
 
-            <!-- Menu Items Management Section -->
-            <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
-                <h2 class="text-2xl font-bold mb-4">Manage Menu Items</h2>
-                <div id="menu-items-list" class="space-y-4 mb-6">
-                    <div id="loading-menu-items" class="p-4 text-center text-gray-500">Loading menu items...</div>
-                </div>
-                <div class="mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold mb-4">Add New Menu Item</h3>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <input id="productName" type="text" placeholder="Product Name" class="p-3 rounded-lg text-black">
-                        <input id="productPrice" type="number" step="0.01" placeholder="Price (e.g., 9.99)" class="p-3 rounded-lg text-black">
-                        <textarea id="productDescription" placeholder="Product Description" class="p-3 rounded-lg text-black col-span-2"></textarea>
-                        <input id="productImageUrl" type="text" placeholder="Image URL (e.g., https://placehold.co/400x200)" class="p-3 rounded-lg text-black col-span-2">
+            <div id="admin-dashboard-content" class="hidden">
+                <header class="flex justify-between items-center bg-gray-800 p-4 rounded-xl mb-6">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+                        <span id="store-title-display" class="text-lg text-yellow-400"></span>
                     </div>
-                    <button id="addProductBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Add Product</button>
-                </div>
-            </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">Logout</button>
+                    </div>
+                </header>
 
-            <!-- Orders Management Section -->
-            <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold mb-4">Orders</h2>
-                <div id="orders-list" class="space-y-4">
-                    <div id="loading-orders" class="p-4 text-center text-gray-500">Loading orders...</div>
+                <!-- Store Information Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold mb-4">Store Information</h2>
+                    <p id="user-id-display" class="text-sm text-gray-400 mb-4"></p>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="storeName" class="block text-sm font-medium text-gray-300 mb-2">Store Name</label>
+                            <input id="storeName" type="text" placeholder="e.g., Downtown Eats" class="p-3 rounded-lg text-black w-full">
+                        </div>
+                        <div>
+                            <label for="storeLogo" class="block text-sm font-medium text-gray-300 mb-2">Store Logo URL</label>
+                            <input id="storeLogo" type="text" placeholder="e.g., https://your-logo.com/logo.png" class="p-3 rounded-lg text-black w-full">
+                        </div>
+                        <div>
+                            <label for="usdcWalletAddressInput" class="block text-sm font-medium text-gray-300 mb-2">USDC Receiving Wallet Address</label>
+                            <input id="usdcWalletAddressInput" type="text" placeholder="Enter your USDC wallet address" class="p-3 rounded-lg text-black w-full">
+                        </div>
+                        <button id="saveStoreInfoBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Save Store Info</button>
+                    </div>
+                </div>
+
+                <!-- Menu Items Management Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold mb-4">Manage Menu Items</h2>
+                    <div id="menu-items-list" class="space-y-4 mb-6">
+                        <div id="loading-menu-items" class="p-4 text-center text-gray-500">Loading menu items...</div>
+                    </div>
+                    <div class="mt-8 pt-6 border-t border-gray-700">
+                        <h3 class="text-xl font-bold mb-4">Add New Menu Item</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <input id="productName" type="text" placeholder="Product Name" class="p-3 rounded-lg text-black">
+                            <input id="productPrice" type="number" step="0.01" placeholder="Price (e.g., 9.99)" class="p-3 rounded-lg text-black">
+                            <textarea id="productDescription" placeholder="Product Description" class="p-3 rounded-lg text-black col-span-2"></textarea>
+                            <input id="productImageUrl" type="text" placeholder="Image URL (e.g., https://placehold.co/400x200)" class="p-3 rounded-lg text-black col-span-2">
+                        </div>
+                        <button id="addProductBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Add Product</button>
+                    </div>
+                </div>
+
+                <!-- Orders Management Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Orders</h2>
+                    <div id="orders-list" class="space-y-4">
+                        <div id="loading-orders" class="p-4 text-center text-gray-500">Loading orders...</div>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
     
     <!-- === Message Modal === -->
@@ -119,8 +162,22 @@
         </div>
     </div>
 
+    <!-- === Order Status Modal === -->
+    <div id="order-status-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
+            <h3 class="text-2xl font-bold mb-2">Order Status</h3>
+            <p id="order-status-id" class="text-sm text-gray-400 mb-4"></p>
+            <div class="flex items-center justify-center space-x-2 mb-6">
+                <i id="status-icon" class="fas fa-sync-alt fa-spin text-yellow-400 text-3xl"></i>
+                <p id="status-message" class="text-xl font-semibold">Placing Order...</p>
+            </div>
+            <p class="text-sm text-gray-300">This page will update automatically. You can close it, but your order ID is important!</p>
+            <button id="order-status-close-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg mt-4">Close</button>
+        </div>
+    </div>
+
     <script type="module">
-        // Disable the right-click context menu
+        // Disable the right-click context menu for the entire application
         document.addEventListener('contextmenu', event => event.preventDefault());
 
         // --- Import Firebase SDK functions
@@ -130,15 +187,16 @@
 
         // --- 1. Global State & Configuration ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const hardcodedAdminPassword = 'memphisfoodheap';
         
         let config = {
             storeName: 'The Food Spot',
             storeLogo: '',
-            usdcWalletAddress: '', // New field for the wallet address
+            usdcWalletAddress: '', 
             products: [],
             orders: []
         };
-        let adminPassword = null;
+        let cart = {};
         let isLoggedIn = false;
         let isAuthReady = false;
 
@@ -149,21 +207,36 @@
         const db = getFirestore(app);
         let userId = '';
 
-        // --- 2. DOM Elements ---
+        // --- 2. DOM Elements (All pages) ---
+        // Page containers
+        const startPage = document.getElementById('start-page');
+        const kioskPage = document.getElementById('kiosk-page');
+        const adminPage = document.getElementById('admin-page');
+
+        // Start page buttons
+        const startKioskBtn = document.getElementById('start-kiosk-btn');
+        const startAdminBtn = document.getElementById('start-admin-btn');
+        
+        // Kiosk page elements
+        const kioskStoreTitle = document.getElementById('kiosk-store-title');
+        const menuItemsContainer = document.getElementById('menu-items');
+        const orderList = document.getElementById('order-list');
+        const totalUsdSpan = document.getElementById('total-usd');
+        const totalUsdcSpan = document.getElementById('total-usdc');
+        const payBtn = document.getElementById('pay-btn');
+        const kioskBackBtn = document.getElementById('kiosk-back-btn');
+
+        // Admin page elements
+        const adminBackBtn = document.getElementById('admin-back-btn');
         const adminLogin = document.getElementById('admin-login');
         const adminDashboardContent = document.getElementById('admin-dashboard-content');
         const adminStatusMessage = document.getElementById('admin-status-message');
-        const walletAddressContainer = document.getElementById('wallet-address-container');
-        const usdcWalletAddressInput = document.getElementById('usdcWalletAddress');
-        
-        // Buttons
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
-
-        // Admin fields
         const adminLoginPasswordInput = document.getElementById('adminLoginPassword');
         const storeNameInput = document.getElementById('storeName');
         const storeLogoInput = document.getElementById('storeLogo');
+        const usdcWalletAddressInput = document.getElementById('usdcWalletAddressInput');
         const saveStoreInfoBtn = document.getElementById('saveStoreInfoBtn');
         const productNameInput = document.getElementById('productName');
         const productPriceInput = document.getElementById('productPrice');
@@ -174,110 +247,150 @@
         const ordersList = document.getElementById('orders-list');
         const userIdDisplay = document.getElementById('user-id-display');
         
-        // Modals
+        // Modals (shared)
         const messageModal = document.getElementById('message-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalCloseBtn = document.getElementById('modal-close-btn');
+        const orderStatusModal = document.getElementById('order-status-modal');
+        const orderStatusId = document.getElementById('order-status-id');
+        const statusIcon = document.getElementById('status-icon');
+        const statusMessage = document.getElementById('status-message');
+        const orderStatusCloseBtn = document.getElementById('order-status-close-btn');
 
-        // --- 3. Firestore & Core Functions ---
-        function initializeFirestoreListeners() {
-            // Fetch initial password and listen for updates
-            const passwordRef = doc(db, `artifacts/${appId}/users/${userId}/config/adminPassword`);
-            onSnapshot(passwordRef, (docSnap) => {
-                adminPassword = docSnap.exists() ? docSnap.data().value : null;
-                if (adminStatusMessage) { 
-                  if (adminPassword) {
-                      adminStatusMessage.textContent = 'Enter your password to continue.';
-                      adminLoginPasswordInput.placeholder = "Enter existing password";
-                      walletAddressContainer.classList.add('hidden');
-                  } else {
-                      adminStatusMessage.textContent = 'This is the first time. Create a new password and provide a USDC wallet address.';
-                      adminLoginPasswordInput.placeholder = "Create new password";
-                      walletAddressContainer.classList.remove('hidden');
-                  }
-                }
-            }, (error) => { console.error("Error fetching password:", error); });
+        // --- 3. Configuration for Blockchain Payments ---
+        const USDC_POLYGON_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+        const PLATFORM_FEE_ADDRESS = "0x5093873aa4EC1A9A9eba26E26e41CFb13b35CBba";
+        const PLATFORM_FEE_AMOUNT_USDC = 0.01;
+        const usdcAbi = ["function transfer(address to, uint256 amount) returns (bool)"];
+        const polygonChainId = '0x89';
 
-            // Listen for store info changes
-            const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
-            onSnapshot(storeInfoRef, (doc) => {
-                if (doc.exists()) {
-                    config.storeName = doc.data().storeName;
-                    config.storeLogo = doc.data().storeLogo;
-                    config.usdcWalletAddress = doc.data().usdcWalletAddress;
-                    const storeTitleDisplay = document.getElementById('store-title-display');
-                    if (storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
-                    
-                    // Update admin dashboard fields
-                    if (isLoggedIn) {
-                        storeNameInput.value = config.storeName || '';
-                        storeLogoInput.value = config.storeLogo || '';
-                        usdcWalletAddressInput.value = config.usdcWalletAddress || '';
-                    }
-                }
-            }, (error) => { console.error("Error fetching store info:", error); });
-
-            // Listen for menu items changes
-            const productsRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
-            onSnapshot(productsRef, (querySnapshot) => {
-                config.products = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (isLoggedIn) renderAdminMenuItems();
-            }, (error) => { console.error("Error fetching products:", error); });
-
-            // Listen for orders changes (only for admin dashboard)
-            const ordersRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
-            onSnapshot(ordersRef, (querySnapshot) => {
-                config.orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (isLoggedIn) renderAdminOrders();
-            }, (error) => { console.error("Error fetching orders:", error); });
+        // --- 4. Navigation & UI Logic ---
+        function showPage(pageId) {
+            startPage.classList.add('hidden');
+            kioskPage.classList.add('hidden');
+            adminPage.classList.add('hidden');
+            document.getElementById(pageId).classList.remove('hidden');
         }
-        
-        // --- UI State Management functions
+
         function showModal(title, message) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
             messageModal.classList.remove('hidden');
         }
         
-        // --- Admin-specific functions
-        async function loginAdmin() {
-            if (!isAuthReady) {
-                showModal('Error', 'Application is not ready. Please wait a moment and try again.');
-                return;
-            }
-            const password = adminLoginPasswordInput.value;
-            const walletAddress = usdcWalletAddressInput.value;
-            const passwordRef = doc(db, `artifacts/${appId}/users/${userId}/config/adminPassword`);
-            const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
-            
-            console.log("Attempting login...");
+        function showOrderStatusModal(orderId, initialStatus) {
+            orderStatusId.textContent = `Order ID: ${orderId}`;
+            updateOrderStatusModal(initialStatus);
+            orderStatusModal.classList.remove('hidden');
+        }
 
-            if (adminPassword === null) { // First time setup
-                if (password.length > 0 && walletAddress.length > 0) {
-                    await setDoc(passwordRef, { value: password });
-                    await setDoc(storeInfoRef, { usdcWalletAddress: walletAddress }, { merge: true });
-                    isLoggedIn = true;
-                    adminLogin.classList.add('hidden');
-                    adminDashboardContent.classList.remove('hidden');
-                    renderAdminDashboard();
-                    showModal('Setup Complete!', 'Admin password and wallet saved successfully.');
-                } else {
-                    showModal('Error', 'Please enter a password and a USDC wallet address.');
-                }
-            } else { // Subsequent logins
-                if (password === adminPassword) {
-                    isLoggedIn = true;
-                    adminLogin.classList.add('hidden');
-                    adminDashboardContent.classList.remove('hidden');
-                    renderAdminDashboard();
-                    showModal('Success', 'Logged in as Admin.');
-                } else {
-                    showModal('Error', 'Incorrect password.');
-                }
+        function updateOrderStatusModal(status) {
+            switch (status) {
+                case 'new':
+                    statusIcon.className = 'fas fa-sync-alt fa-spin text-yellow-400 text-3xl';
+                    statusMessage.textContent = 'Order Placed!';
+                    break;
+                case 'in_progress':
+                    statusIcon.className = 'fas fa-hourglass-half fa-spin text-indigo-400 text-3xl';
+                    statusMessage.textContent = 'Order In Progress';
+                    break;
+                case 'ready_for_pickup':
+                    statusIcon.className = 'fas fa-bell text-green-400 text-3xl animate-pulse';
+                    statusMessage.textContent = 'Ready for Pickup!';
+                    break;
+                default:
+                    statusIcon.className = 'fas fa-check-circle text-gray-400 text-3xl';
+                    statusMessage.textContent = `Status: ${status}`;
             }
         }
         
+        // --- Kiosk-specific functions
+        function renderKioskMenuItems() {
+            const loadingKioskMenu = document.getElementById('loading-kiosk-menu');
+            if (loadingKioskMenu) {
+                loadingKioskMenu.classList.add('hidden');
+            }
+            if(kioskStoreTitle) kioskStoreTitle.textContent = config.storeName || 'The Food Spot';
+            if(menuItemsContainer) menuItemsContainer.innerHTML = '';
+            if (!config.products || config.products.length === 0) {
+              if (menuItemsContainer) menuItemsContainer.innerHTML = '<div class="p-6 bg-gray-700 rounded text-center">This kiosk has not been configured yet.</div>';
+                return;
+            }
+            config.products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-700 p-4 rounded-xl shadow-lg flex flex-col';
+                card.innerHTML = `
+                    <img src="${p.imageUrl || 'https://placehold.co/400x200/4a5568/a0aec0?text=No+Image'}" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/400x200/4a5568/a0aec0?text=No+Image';"
+                         class="w-full h-36 object-cover rounded-lg mb-3">
+                    <h4 class="font-semibold text-white">${p.name}</h4>
+                    <p class="text-gray-300 text-sm mb-2">${p.description || ''}</p>
+                    <div class="flex justify-between items-center mt-auto">
+                        <div class="text-yellow-300 font-bold">$${Number(p.price||0).toFixed(2)}</div>
+                        <button class="add-btn px-4 py-2 bg-indigo-500 rounded-lg text-white font-semibold hover:bg-indigo-600 transition" data-id="${p.id}">Add</button>
+                    </div>
+                `;
+                if(menuItemsContainer) menuItemsContainer.appendChild(card);
+            });
+            document.querySelectorAll('.add-btn').forEach(b => {
+                b.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    addToCart(id);
+                });
+            });
+        }
+
+        function addToCart(itemId) {
+            const product = (config.products||[]).find(x => x.id === itemId);
+            if (!product) return;
+            cart[itemId] = (cart[itemId] || 0) + 1;
+            updateCartUI();
+        }
+
+        function removeFromCart(itemId) {
+            if (!cart[itemId]) return;
+            cart[itemId]--;
+            if (cart[itemId] <= 0) delete cart[itemId];
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            if (orderList) orderList.innerHTML = '';
+            const items = Object.keys(cart);
+            let total = 0;
+            if (items.length === 0) {
+                if (orderList) orderList.innerHTML = '<p class="text-gray-400">No items yet.</p>';
+                if(payBtn) payBtn.disabled = true;
+            } else {
+                items.forEach(id => {
+                    const qty = cart[id];
+                    const prod = (config.products || []).find(p => p.id === id);
+                    if (!prod) return;
+                    total += prod.price * qty;
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg';
+                    row.innerHTML = `
+                        <div>
+                            <div class="font-semibold">${prod.name} x ${qty}</div>
+                            <div class="text-xs text-gray-400">$${Number(prod.price).toFixed(2)} each</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold">$${(prod.price * qty).toFixed(2)}</div>
+                            <button class="text-red-400 remove-btn text-sm" data-id="${id}">Remove</button>
+                        </div>
+                    `;
+                    if (orderList) orderList.appendChild(row);
+                });
+                document.querySelectorAll('.remove-btn').forEach(b => b.addEventListener('click', e => removeFromCart(e.currentTarget.dataset.id)));
+                if(payBtn) payBtn.disabled = false;
+            }
+            const totalWithFee = total + PLATFORM_FEE_AMOUNT_USDC;
+            if(totalUsdSpan) totalUsdSpan.textContent = '$' + total.toFixed(2);
+            if(totalUsdcSpan) totalUsdcSpan.textContent = totalWithFee.toFixed(2) + ' USDC';
+        }
+
+        // --- Admin-specific functions
         function renderAdminDashboard() {
             if (userIdDisplay) userIdDisplay.textContent = `Your unique user ID: ${userId}`;
             storeNameInput.value = config.storeName || '';
@@ -377,13 +490,147 @@
             });
         }
 
-        // --- 4. Event Listeners & Initialization ---
+        // --- Payment functions
+        async function switchNetworkToPolygon() {
+            try {
+                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: polygonChainId }]});
+            } catch (err) {
+                if (err.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params:[{
+                                chainId: polygonChainId,
+                                chainName: 'Polygon Mainnet',
+                                rpcUrls: ['https://polygon-rpc.com/'],
+                                nativeCurrency: {name:'MATIC',symbol:'MATIC',decimals:18},
+                                blockExplorerUrls:['https://polygonscan.com/']
+                            }]
+                        });
+                    } catch (addError) {
+                        showModal('Error', 'Failed to add Polygon network to MetaMask.');
+                        throw addError;
+                    }
+                } else {
+                    showModal('Error', 'Failed to switch to Polygon network.');
+                    throw err;
+                }
+            }
+        }
+        
+        async function processPayment() {
+            const totalUSD = parseFloat(totalUsdSpan.textContent.replace('$', '')) || 0;
+            if (totalUSD <= 0) {
+                showModal('Error', 'Your cart is empty.');
+                return;
+            }
+
+            if (typeof window.ethereum === 'undefined') {
+                showModal('Error', 'Please install MetaMask to proceed with payment.');
+                return;
+            }
+            
+            let orderId;
+            try {
+                payBtn.textContent = 'Processing...';
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                await switchNetworkToPolygon();
+
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const usdcContract = new ethers.Contract(USDC_POLYGON_ADDRESS, usdcAbi, signer);
+
+                // Payment for the platform fee
+                const platformFeeAmount = ethers.parseUnits(PLATFORM_FEE_AMOUNT_USDC.toFixed(2), 6);
+                const platformFeeTx = await usdcContract.transfer(PLATFORM_FEE_ADDRESS, platformFeeAmount);
+                await platformFeeTx.wait();
+
+                // Payment for the store
+                const storePaymentAmount = ethers.parseUnits(totalUSD.toFixed(2), 6);
+                const storePaymentTx = await usdcContract.transfer(config.usdcWalletAddress, storePaymentAmount);
+                await storePaymentTx.wait();
+
+                // Add the order to Firestore
+                const ordersCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
+                const order = {
+                    timestamp: new Date().toLocaleString(),
+                    items: Object.keys(cart).map(id => {
+                        const p = (config.products || []).find(x => x.id === id);
+                        return { id, name: p.name, price: p.price, quantity: cart[id] };
+                    }),
+                    total: totalUSD,
+                    status: 'new'
+                };
+                const docRef = await addDoc(ordersCollectionRef, order);
+                orderId = docRef.id;
+
+                showOrderStatusModal(orderId, 'new');
+
+                // Listen for status changes on this specific order
+                const orderDocRef = doc(db, `artifacts/${appId}/users/${userId}/orders/${orderId}`);
+                onSnapshot(orderDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const updatedStatus = docSnap.data().status;
+                        updateOrderStatusModal(updatedStatus);
+                    }
+                });
+
+                // Reset the cart and UI
+                cart = {};
+                updateCartUI();
+                
+            } catch (err) {
+                console.error(err);
+                showModal('Payment Failed', `An error occurred: ${err.message}`);
+            } finally {
+                payBtn.textContent = 'Pay with Polygon';
+            }
+        }
+
+        // --- 5. Firestore & Core Functions ---
+        function initializeFirestoreListeners() {
+            // Listen for store info changes
+            const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
+            onSnapshot(storeInfoRef, (doc) => {
+                if (doc.exists()) {
+                    config.storeName = doc.data().storeName;
+                    config.storeLogo = doc.data().storeLogo;
+                    config.usdcWalletAddress = doc.data().usdcWalletAddress;
+                    if (kioskStoreTitle) kioskStoreTitle.textContent = config.storeName || 'The Food Spot';
+                    if (isLoggedIn) {
+                        storeNameInput.value = config.storeName || '';
+                        storeLogoInput.value = config.storeLogo || '';
+                        usdcWalletAddressInput.value = config.usdcWalletAddress || '';
+                        const storeTitleDisplay = document.getElementById('store-title-display');
+                        if (storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
+                    }
+                }
+            }, (error) => { console.error("Error fetching store info:", error); });
+
+            // Listen for menu items changes
+            const productsRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
+            onSnapshot(productsRef, (querySnapshot) => {
+                config.products = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderKioskMenuItems();
+                if (isLoggedIn) renderAdminMenuItems();
+            }, (error) => { console.error("Error fetching products:", error); });
+
+            // Listen for orders changes (only for admin dashboard)
+            const ordersRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
+            onSnapshot(ordersRef, (querySnapshot) => {
+                config.orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (isLoggedIn) renderAdminOrders();
+            }, (error) => { console.error("Error fetching orders:", error); });
+        }
+        
+        // --- 6. Event Listeners & Initialization ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 console.log("Authenticated with user ID:", user.uid);
                 userId = user.uid;
                 isAuthReady = true;
                 initializeFirestoreListeners();
+                showPage('start-page');
             } else {
                 console.log("No user authenticated. Signing in anonymously.");
                 try {
@@ -398,16 +645,40 @@
                 }
             }
         });
-        
+
         document.addEventListener('DOMContentLoaded', () => {
-            if(modalCloseBtn) modalCloseBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
-            if(loginBtn) loginBtn.addEventListener('click', loginAdmin);
+            // Start Page buttons
+            if(startKioskBtn) startKioskBtn.addEventListener('click', () => showPage('kiosk-page'));
+            if(startAdminBtn) startAdminBtn.addEventListener('click', () => showPage('admin-page'));
+            
+            // Kiosk page buttons
+            if(kioskBackBtn) kioskBackBtn.addEventListener('click', () => showPage('start-page'));
+            if(payBtn) payBtn.addEventListener('click', processPayment);
+            
+            // Admin page buttons
+            if(adminBackBtn) adminBackBtn.addEventListener('click', () => showPage('start-page'));
+            if(loginBtn) loginBtn.addEventListener('click', () => {
+                if (!isAuthReady) {
+                    showModal('Error', 'Application is not ready. Please wait a moment and try again.');
+                    return;
+                }
+                if (adminLoginPasswordInput.value === hardcodedAdminPassword) {
+                    isLoggedIn = true;
+                    adminLogin.classList.add('hidden');
+                    adminDashboardContent.classList.remove('hidden');
+                    renderAdminDashboard();
+                    showModal('Success', 'Logged in as Admin.');
+                } else {
+                    showModal('Error', 'Incorrect password.');
+                }
+            });
             
             if(logoutBtn) logoutBtn.addEventListener('click', () => {
                 isLoggedIn = false;
+                adminLoginPasswordInput.value = '';
                 adminDashboardContent.classList.add('hidden');
                 adminLogin.classList.remove('hidden');
-                window.location.href = 'start.html';
+                showPage('start-page');
             });
             
             if(saveStoreInfoBtn) saveStoreInfoBtn.addEventListener('click', async () => {
@@ -452,6 +723,10 @@
                     console.error("Error adding product:", error);
                 }
             });
+
+            // Modal buttons
+            if(modalCloseBtn) modalCloseBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
+            if(orderStatusCloseBtn) orderStatusCloseBtn.addEventListener('click', () => orderStatusModal.classList.add('hidden'));
         });
     </script>
 </body>
