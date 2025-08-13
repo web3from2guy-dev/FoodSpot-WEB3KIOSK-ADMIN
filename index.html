@@ -3,748 +3,562 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Food Spot - All in One</title>
+    <title>Gift Shop & Collectibles</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .scrollable-content {
+            height: calc(100vh - 120px); /* Adjust based on header/footer size */
+            overflow-y: auto;
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #d1d5db #f3f4f6; /* Firefox */
+        }
+
+        .scrollable-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 10px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 10px;
+            border: 2px solid #f3f4f6;
+        }
+
+        /* Basic styling for the order status */
+        .status-pending {
+            color: #f59e0b; /* Amber */
+            font-weight: bold;
+        }
+        .status-completed {
+            color: #10b981; /* Emerald */
+            font-weight: bold;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6">
+<body class="bg-gray-100 flex flex-col items-center justify-center p-4">
 
-    <div id="main-container" class="flex flex-col min-h-screen">
-
-        <!-- === 1. START PAGE === -->
-        <div id="start-page" class="flex flex-col items-center justify-center flex-grow">
-            <div class="max-w-lg w-full bg-gray-800 p-10 rounded-2xl shadow-2xl text-center">
-                <h1 class="text-4xl font-extrabold text-yellow-400 mb-4">Welcome to Your Food Spot</h1>
-                <p class="text-gray-300 mb-8">Choose your role to continue</p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button id="start-kiosk-btn" class="px-6 py-3 bg-indigo-600 rounded-xl text-white font-semibold hover:bg-indigo-700 transition">
-                        <i class="fas fa-utensils mr-2"></i> Customer Kiosk
-                    </button>
-                    <button id="start-admin-btn" class="px-6 py-3 bg-purple-600 rounded-xl text-white font-semibold hover:bg-purple-700 transition">
-                        <i class="fas fa-user-shield mr-2"></i> Admin Dashboard
-                    </button>
-                </div>
-                <p class="text-gray-400 mt-6 text-sm">Each deployed copy keeps its own configuration.</p>
-            </div>
-        </div>
-        
-        <!-- === 2. CUSTOMER KIOSK & PAYWALL === -->
-        <div id="kiosk-page" class="min-h-screen hidden">
-            <header class="bg-gray-800 p-6 text-center rounded-b-xl mb-6">
-                <button id="kiosk-back-btn" class="absolute left-4 top-6 text-gray-400 hover:text-white transition">
-                    <i class="fas fa-arrow-left"></i> Back
+    <div id="welcome-page" class="flex flex-col items-center justify-center min-h-screen transition-opacity duration-500 ease-in-out">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center">
+            <h1 class="text-5xl font-extrabold text-gray-800 mb-4">Welcome</h1>
+            <p class="text-xl text-gray-600 mb-8">Discover a world of unique gifts and cherished collectibles.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="connect-wallet-btn" class="px-8 py-4 bg-purple-600 text-white font-semibold text-lg rounded-full shadow-lg hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50">
+                    Connect Wallet
                 </button>
-                <h1 id="kiosk-store-title" class="text-3xl font-extrabold text-yellow-400">The Food Spot</h1>
-            </header>
-            
-            <main class="container mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <section class="lg:col-span-2">
-                    <h2 class="text-2xl text-indigo-300 mb-4">Our Menu</h2>
-                    <div id="menu-items" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div id="loading-kiosk-menu" class="p-6 bg-gray-700 rounded text-center">Loading menu...</div>
-                    </div>
-                </section>
-        
-                <aside class="bg-gray-800 p-4 rounded-xl lg:col-span-1 h-fit sticky top-6">
-                    <h3 class="text-xl text-green-300 mb-4">Your Order</h3>
-                    <div id="order-list" class="space-y-3 min-h-[120px]">
-                        <p class="text-gray-400">No items yet.</p>
-                    </div>
-                    <div class="mt-4">
-                        <div class="flex justify-between mb-2"><span>Platform Fee</span><span>0.01 USDC</span></div>
-                        <div class="flex justify-between mb-2"><span>Total (USD)</span><span id="total-usd">$0.00</span></div>
-                        <div class="flex justify-between mb-4"><span>Total (USDC incl. fee)</span><span id="total-usdc">0.00 USDC</span></div>
-                        <button id="pay-btn" class="w-full py-3 bg-indigo-600 rounded-xl text-white font-bold transition disabled:opacity-50" disabled>
-                            <i class="fas fa-wallet mr-2"></i>Pay with Polygon
-                        </button>
-                    </div>
-                </aside>
-            </main>
-        </div>
-
-        <!-- === 3. ADMIN DASHBOARD === -->
-        <div id="admin-page" class="p-6 flex-grow max-w-5xl mx-auto w-full hidden">
-            <header class="p-4">
-                <button id="admin-back-btn" class="text-gray-400 hover:text-white transition">
-                    <i class="fas fa-arrow-left"></i> Back to Start
+                <button id="enter-shop-btn" class="px-8 py-4 bg-purple-600 text-white font-semibold text-lg rounded-full shadow-lg hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50 hidden">
+                    Enter the Shop
                 </button>
-            </header>
-
-            <div id="admin-login" class="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto mt-20">
-                <h1 class="text-3xl font-bold mb-4 text-center">Admin Login</h1>
-                <p id="admin-status-message" class="mb-6 text-center text-gray-400">Enter the admin password to continue.</p>
-                <div id="password-input-container" class="mb-4">
-                    <label for="adminLoginPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                    <input 
-                        id="adminLoginPassword" 
-                        type="password" 
-                        placeholder="Enter password" 
-                        class="p-3 rounded-lg text-black w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-                    >
-                </div>
-                <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition duration-200">
-                    Login
+                <button id="admin-login-btn" class="px-8 py-4 bg-gray-600 text-white font-semibold text-lg rounded-full shadow-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50">
+                    Admin Login
                 </button>
             </div>
-
-            <div id="admin-dashboard-content" class="hidden">
-                <header class="flex justify-between items-center bg-gray-800 p-4 rounded-xl mb-6">
-                    <div class="flex items-center space-x-4">
-                        <h1 class="text-3xl font-bold">Admin Dashboard</h1>
-                        <span id="store-title-display" class="text-lg text-yellow-400"></span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">Logout</button>
-                    </div>
-                </header>
-
-                <!-- Store Information Section -->
-                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
-                    <h2 class="text-2xl font-bold mb-4">Store Information</h2>
-                    <p id="user-id-display" class="text-sm text-gray-400 mb-4"></p>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="storeName" class="block text-sm font-medium text-gray-300 mb-2">Store Name</label>
-                            <input id="storeName" type="text" placeholder="e.g., Downtown Eats" class="p-3 rounded-lg text-black w-full">
-                        </div>
-                        <div>
-                            <label for="storeLogo" class="block text-sm font-medium text-gray-300 mb-2">Store Logo URL</label>
-                            <input id="storeLogo" type="text" placeholder="e.g., https://your-logo.com/logo.png" class="p-3 rounded-lg text-black w-full">
-                        </div>
-                        <div>
-                            <label for="usdcWalletAddressInput" class="block text-sm font-medium text-gray-300 mb-2">USDC Receiving Wallet Address</label>
-                            <input id="usdcWalletAddressInput" type="text" placeholder="Enter your USDC wallet address" class="p-3 rounded-lg text-black w-full">
-                        </div>
-                        <button id="saveStoreInfoBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Save Store Info</button>
-                    </div>
-                </div>
-
-                <!-- Menu Items Management Section -->
-                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
-                    <h2 class="text-2xl font-bold mb-4">Manage Menu Items</h2>
-                    <div id="menu-items-list" class="space-y-4 mb-6">
-                        <div id="loading-menu-items" class="p-4 text-center text-gray-500">Loading menu items...</div>
-                    </div>
-                    <div class="mt-8 pt-6 border-t border-gray-700">
-                        <h3 class="text-xl font-bold mb-4">Add New Menu Item</h3>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <input id="productName" type="text" placeholder="Product Name" class="p-3 rounded-lg text-black">
-                            <input id="productPrice" type="number" step="0.01" placeholder="Price (e.g., 9.99)" class="p-3 rounded-lg text-black">
-                            <textarea id="productDescription" placeholder="Product Description" class="p-3 rounded-lg text-black col-span-2"></textarea>
-                            <input id="productImageUrl" type="text" placeholder="Image URL (e.g., https://placehold.co/400x200)" class="p-3 rounded-lg text-black col-span-2">
-                        </div>
-                        <button id="addProductBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Add Product</button>
-                    </div>
-                </div>
-
-                <!-- Orders Management Section -->
-                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-bold mb-4">Orders</h2>
-                    <div id="orders-list" class="space-y-4">
-                        <div id="loading-orders" class="p-4 text-center text-gray-500">Loading orders...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-    
-    <!-- === Message Modal === -->
-    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
-            <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
-            <p id="modal-message" class="mb-6"></p>
-            <button id="modal-close-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">OK</button>
         </div>
     </div>
 
-    <!-- === Order Status Modal === -->
-    <div id="order-status-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
-            <h3 class="text-2xl font-bold mb-2">Order Status</h3>
-            <p id="order-status-id" class="text-sm text-gray-400 mb-4"></p>
-            <div class="flex items-center justify-center space-x-2 mb-6">
-                <i id="status-icon" class="fas fa-sync-alt fa-spin text-yellow-400 text-3xl"></i>
-                <p id="status-message" class="text-xl font-semibold">Placing Order...</p>
+    <div id="storefront-page" class="hidden w-full max-w-6xl transition-opacity duration-500 ease-in-out flex flex-col">
+
+        <header class="w-full bg-white p-6 rounded-2xl shadow-xl text-center mb-6">
+            <h2 class="text-4xl font-extrabold text-gray-800">Our Collections</h2>
+            <p class="text-lg text-gray-500 mt-2">All products in one place. No categories, just pure discovery.</p>
+            <p id="account-info" class="text-sm text-gray-500 mt-2 hidden">Connected: <span id="wallet-address"></span></p>
+            <button id="back-to-welcome-from-store" class="mt-4 px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-colors duration-200 focus:outline-none">
+                Back to Welcome
+            </button>
+        </header>
+
+        <div class="scrollable-content w-full bg-white p-6 rounded-2xl shadow-xl">
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t-2 border-gray-200 shadow-xl flex flex-col sm:flex-row items-center justify-between z-10 rounded-t-2xl">
+            <div id="cart-summary" class="flex-grow text-center sm:text-left text-gray-700 mb-4 sm:mb-0">
+                <span class="font-semibold text-lg" id="cart-item-count">Your Cart: 0 items</span>
+                <span class="font-bold text-xl ml-4" id="cart-total">Total: $0.00</span>
             </div>
-            <p class="text-sm text-gray-300">This page will update automatically. You can close it, but your order ID is important!</p>
-            <button id="order-status-close-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg mt-4">Close</button>
+            <button id="checkout-btn" class="px-6 py-3 bg-green-500 text-white font-bold rounded-full shadow-md hover:bg-green-600 transition-colors duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-400 focus:ring-opacity-50">
+                Proceed to Checkout
+            </button>
+        </div>
+    </div>
+
+    <div id="admin-login-page" class="hidden flex-col items-center justify-center min-h-screen transition-opacity duration-500 ease-in-out">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Admin Login</h2>
+            <input type="password" id="admin-password-input" placeholder="Enter Admin Password" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p id="admin-login-error" class="text-red-500 text-sm mb-4 hidden">Incorrect password. Please try again.</p>
+            <button id="login-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                Login
+            </button>
+            <button id="back-to-welcome-from-admin-login" class="mt-4 px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-colors duration-200 focus:outline-none">
+                Back to Welcome
+            </button>
+        </div>
+    </div>
+
+    <div id="admin-dashboard-page" class="hidden w-full max-w-6xl transition-opacity duration-500 ease-in-out flex flex-col">
+        <header class="w-full bg-white p-6 rounded-2xl shadow-xl text-center mb-6">
+            <h2 class="text-4xl font-extrabold text-gray-800">Order Management</h2>
+            <p class="text-lg text-gray-500 mt-2">Track and manage all customer orders.</p>
+            <button id="back-to-welcome-from-admin-dashboard" class="mt-4 px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-colors duration-200 focus:outline-none">
+                Back to Welcome
+            </button>
+        </header>
+
+        <div class="scrollable-content w-full bg-white p-6 rounded-2xl shadow-xl">
+            <div id="orders-list" class="space-y-4">
+                <p class="text-gray-500 text-center" id="no-orders-message">No orders yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-20">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center transform scale-95 transition-all duration-300 ease-out">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Order Confirmed!</h3>
+            <p class="text-gray-600 mb-6">
+                Your order is complete. To pay, please use the following unique order ID with your Cash App transaction.
+            </p>
+            <div class="bg-gray-100 p-4 rounded-xl flex items-center justify-between mb-6">
+                <p id="order-text" class="text-lg font-mono text-gray-800 break-all mr-4"></p>
+                <button id="copy-btn" class="flex-shrink-0 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    Copy
+                </button>
+            </div>
+            <p class="text-sm text-gray-500">Make sure this ID is in the transaction note.</p>
+            <button id="close-modal-btn" class="mt-6 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-colors duration-200 focus:outline-none">
+                Close
+            </button>
         </div>
     </div>
 
     <script type="module">
-        // Disable the right-click context menu for the entire application
-        document.addEventListener('contextmenu', event => event.preventDefault());
-
-        // --- Import Firebase SDK functions
+        // Firebase imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. Global State & Configuration ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const hardcodedAdminPassword = 'memphisfoodheap';
-        
-        let config = {
-            storeName: 'The Food Spot',
-            storeLogo: '',
-            usdcWalletAddress: '', 
-            products: [],
-            orders: []
-        };
-        let cart = {};
-        let isLoggedIn = false;
-        let isAuthReady = false;
+        // Use an IIFE (Immediately Invoked Function Expression) to avoid global variables
+        (function() {
+            // --- Global Variables for Firebase (MANDATORY) ---
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- Firebase Initialization
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        let userId = '';
+            // --- Firebase Initialization ---
+            let app, db, auth, userId;
+            let isAuthReady = false;
 
-        // --- 2. DOM Elements (All pages) ---
-        // Page containers
-        const startPage = document.getElementById('start-page');
-        const kioskPage = document.getElementById('kiosk-page');
-        const adminPage = document.getElementById('admin-page');
+            async function initializeFirebase() {
+                try {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
 
-        // Start page buttons
-        const startKioskBtn = document.getElementById('start-kiosk-btn');
-        const startAdminBtn = document.getElementById('start-admin-btn');
-        
-        // Kiosk page elements
-        const kioskStoreTitle = document.getElementById('kiosk-store-title');
-        const menuItemsContainer = document.getElementById('menu-items');
-        const orderList = document.getElementById('order-list');
-        const totalUsdSpan = document.getElementById('total-usd');
-        const totalUsdcSpan = document.getElementById('total-usdc');
-        const payBtn = document.getElementById('pay-btn');
-        const kioskBackBtn = document.getElementById('kiosk-back-btn');
+                    // Sign in with custom token if available, otherwise anonymously
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
 
-        // Admin page elements
-        const adminBackBtn = document.getElementById('admin-back-btn');
-        const adminLogin = document.getElementById('admin-login');
-        const adminDashboardContent = document.getElementById('admin-dashboard-content');
-        const adminStatusMessage = document.getElementById('admin-status-message');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const adminLoginPasswordInput = document.getElementById('adminLoginPassword');
-        const storeNameInput = document.getElementById('storeName');
-        const storeLogoInput = document.getElementById('storeLogo');
-        const usdcWalletAddressInput = document.getElementById('usdcWalletAddressInput');
-        const saveStoreInfoBtn = document.getElementById('saveStoreInfoBtn');
-        const productNameInput = document.getElementById('productName');
-        const productPriceInput = document.getElementById('productPrice');
-        const productDescriptionInput = document.getElementById('productDescription');
-        const productImageUrlInput = document.getElementById('productImageUrl');
-        const addProductBtn = document.getElementById('addProductBtn');
-        const menuItemsList = document.getElementById('menu-items-list');
-        const ordersList = document.getElementById('orders-list');
-        const userIdDisplay = document.getElementById('user-id-display');
-        
-        // Modals (shared)
-        const messageModal = document.getElementById('message-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const orderStatusModal = document.getElementById('order-status-modal');
-        const orderStatusId = document.getElementById('order-status-id');
-        const statusIcon = document.getElementById('status-icon');
-        const statusMessage = document.getElementById('status-message');
-        const orderStatusCloseBtn = document.getElementById('order-status-close-btn');
-
-        // --- 3. Configuration for Blockchain Payments ---
-        const USDC_POLYGON_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
-        const PLATFORM_FEE_ADDRESS = "0x5093873aa4EC1A9A9eba26E26e41CFb13b35CBba";
-        const PLATFORM_FEE_AMOUNT_USDC = 0.01;
-        const usdcAbi = ["function transfer(address to, uint256 amount) returns (bool)"];
-        const polygonChainId = '0x89';
-
-        // --- 4. Navigation & UI Logic ---
-        function showPage(pageId) {
-            startPage.classList.add('hidden');
-            kioskPage.classList.add('hidden');
-            adminPage.classList.add('hidden');
-            document.getElementById(pageId).classList.remove('hidden');
-        }
-
-        function showModal(title, message) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            messageModal.classList.remove('hidden');
-        }
-        
-        function showOrderStatusModal(orderId, initialStatus) {
-            orderStatusId.textContent = `Order ID: ${orderId}`;
-            updateOrderStatusModal(initialStatus);
-            orderStatusModal.classList.remove('hidden');
-        }
-
-        function updateOrderStatusModal(status) {
-            switch (status) {
-                case 'new':
-                    statusIcon.className = 'fas fa-sync-alt fa-spin text-yellow-400 text-3xl';
-                    statusMessage.textContent = 'Order Placed!';
-                    break;
-                case 'in_progress':
-                    statusIcon.className = 'fas fa-hourglass-half fa-spin text-indigo-400 text-3xl';
-                    statusMessage.textContent = 'Order In Progress';
-                    break;
-                case 'ready_for_pickup':
-                    statusIcon.className = 'fas fa-bell text-green-400 text-3xl animate-pulse';
-                    statusMessage.textContent = 'Ready for Pickup!';
-                    break;
-                default:
-                    statusIcon.className = 'fas fa-check-circle text-gray-400 text-3xl';
-                    statusMessage.textContent = `Status: ${status}`;
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            console.log("Firebase Auth Ready. User ID:", userId);
+                            isAuthReady = true;
+                            // Start listening to orders if admin dashboard is active
+                            if (!adminDashboardPage.classList.contains('hidden')) {
+                                setupOrderListener();
+                            }
+                        } else {
+                            console.log("No user signed in.");
+                            isAuthReady = false;
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error initializing Firebase:", error);
+                    // Handle error, e.g., show a message to the user
+                }
             }
-        }
-        
-        // --- Kiosk-specific functions
-        function renderKioskMenuItems() {
-            const loadingKioskMenu = document.getElementById('loading-kiosk-menu');
-            if (loadingKioskMenu) {
-                loadingKioskMenu.classList.add('hidden');
+            
+            // --- Web3 State Variables ---
+            let provider;
+            let signer;
+            let currentAddress;
+            const targetPolygonAddress = "0x..."; // **REPLACE WITH YOUR WALLET ADDRESS**
+
+            // --- DOM Element References ---
+            const welcomePage = document.getElementById('welcome-page');
+            const storefrontPage = document.getElementById('storefront-page');
+            const connectWalletBtn = document.getElementById('connect-wallet-btn');
+            const enterShopBtn = document.getElementById('enter-shop-btn');
+            const adminLoginBtn = document.getElementById('admin-login-btn');
+            const productGrid = document.getElementById('product-grid');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const modal = document.getElementById('modal');
+            const orderTextElement = document.getElementById('order-text');
+            const copyBtn = document.getElementById('copy-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const cartItemCount = document.getElementById('cart-item-count');
+            const cartTotal = document.getElementById('cart-total');
+            const walletAddressSpan = document.getElementById('wallet-address');
+            const accountInfoElement = document.getElementById('account-info');
+
+            const adminLoginPage = document.getElementById('admin-login-page');
+            const adminPasswordInput = document.getElementById('admin-password-input');
+            const loginBtn = document.getElementById('login-btn');
+            const adminLoginError = document.getElementById('admin-login-error');
+
+            const adminDashboardPage = document.getElementById('admin-dashboard-page');
+            const ordersList = document.getElementById('orders-list');
+            const noOrdersMessage = document.getElementById('no-orders-message');
+
+            const backToWelcomeFromStore = document.getElementById('back-to-welcome-from-store');
+            const backToWelcomeFromAdminLogin = document.getElementById('back-to-welcome-from-admin-login');
+            const backToWelcomeFromAdminDashboard = document.getElementById('back-to-welcome-from-admin-dashboard');
+
+            // --- State Management ---
+            let cart = [];
+            const ADMIN_PASSWORD = "memphisfoodhead"; // Default admin password
+            const products = [
+                { id: 'prod-001', name: 'Vintage Space Robot', price: 49.99, image: 'https://placehold.co/400x300/e5e7eb/6b7280?text=Robot' },
+                { id: 'prod-002', name: 'Mystic Crystal Ball', price: 29.50, image: 'https://placehold.co/400x300/d1d5db/4b5563?text=Crystal+Ball' },
+                { id: 'prod-003', name: 'Golden Treasure Coin', price: 15.00, image: 'https://placehold.co/400x300/9ca3af/374151?text=Gold+Coin' },
+                { id: 'prod-004', name: 'Pocket Dragon Figurine', price: 22.75, image: 'https://placehold.co/400x300/a5b4fc/1f2937?text=Dragon' },
+                { id: 'prod-005', name: 'Hand-Carved Wooden Bear', price: 35.00, image: 'https://placehold.co/400x300/bfdbfe/1e3a8a?text=Wooden+Bear' },
+                { id: 'prod-006', name: 'Starlight Jar', price: 18.99, image: 'https://placehold.co/400x300/c7d2fe/3730a3?text=Star+Jar' },
+                { id: 'prod-007', name: 'Miniature Globe', price: 25.00, image: 'https://placehold.co/400x300/dbeafe/1e40af?text=Globe' },
+                { id: 'prod-008', name: 'Rare Comic Book', price: 99.99, image: 'https://placehold.co/400x300/c4b5fd/4338ca?text=Comic+Book' }
+            ];
+
+            // --- Utility Functions ---
+            function showPage(pageElement) {
+                welcomePage.classList.add('hidden');
+                storefrontPage.classList.add('hidden');
+                adminLoginPage.classList.add('hidden');
+                adminDashboardPage.classList.add('hidden');
+
+                welcomePage.classList.remove('flex');
+                storefrontPage.classList.remove('flex');
+                adminLoginPage.classList.remove('flex');
+                adminDashboardPage.classList.remove('flex');
+
+                pageElement.classList.remove('hidden');
+                pageElement.classList.add('flex');
             }
-            if(kioskStoreTitle) kioskStoreTitle.textContent = config.storeName || 'The Food Spot';
-            if(menuItemsContainer) menuItemsContainer.innerHTML = '';
-            if (!config.products || config.products.length === 0) {
-              if (menuItemsContainer) menuItemsContainer.innerHTML = '<div class="p-6 bg-gray-700 rounded text-center">This kiosk has not been configured yet.</div>';
-                return;
-            }
-            config.products.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'bg-gray-700 p-4 rounded-xl shadow-lg flex flex-col';
-                card.innerHTML = `
-                    <img src="${p.imageUrl || 'https://placehold.co/400x200/4a5568/a0aec0?text=No+Image'}" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/400x200/4a5568/a0aec0?text=No+Image';"
-                         class="w-full h-36 object-cover rounded-lg mb-3">
-                    <h4 class="font-semibold text-white">${p.name}</h4>
-                    <p class="text-gray-300 text-sm mb-2">${p.description || ''}</p>
-                    <div class="flex justify-between items-center mt-auto">
-                        <div class="text-yellow-300 font-bold">$${Number(p.price||0).toFixed(2)}</div>
-                        <button class="add-btn px-4 py-2 bg-indigo-500 rounded-lg text-white font-semibold hover:bg-indigo-600 transition" data-id="${p.id}">Add</button>
-                    </div>
-                `;
-                if(menuItemsContainer) menuItemsContainer.appendChild(card);
-            });
-            document.querySelectorAll('.add-btn').forEach(b => {
-                b.addEventListener('click', (e) => {
-                    const id = e.currentTarget.dataset.id;
-                    addToCart(id);
-                });
-            });
-        }
 
-        function addToCart(itemId) {
-            const product = (config.products||[]).find(x => x.id === itemId);
-            if (!product) return;
-            cart[itemId] = (cart[itemId] || 0) + 1;
-            updateCartUI();
-        }
-
-        function removeFromCart(itemId) {
-            if (!cart[itemId]) return;
-            cart[itemId]--;
-            if (cart[itemId] <= 0) delete cart[itemId];
-            updateCartUI();
-        }
-
-        function updateCartUI() {
-            if (orderList) orderList.innerHTML = '';
-            const items = Object.keys(cart);
-            let total = 0;
-            if (items.length === 0) {
-                if (orderList) orderList.innerHTML = '<p class="text-gray-400">No items yet.</p>';
-                if(payBtn) payBtn.disabled = true;
-            } else {
-                items.forEach(id => {
-                    const qty = cart[id];
-                    const prod = (config.products || []).find(p => p.id === id);
-                    if (!prod) return;
-                    total += prod.price * qty;
-                    const row = document.createElement('div');
-                    row.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg';
-                    row.innerHTML = `
+            // --- Function to Render Products ---
+            function renderProducts() {
+                productGrid.innerHTML = ''; // Clear previous products
+                products.forEach(product => {
+                    const productCard = document.createElement('div');
+                    productCard.className = 'bg-gray-50 rounded-2xl shadow-md overflow-hidden p-4 flex flex-col justify-between transform hover:scale-105 transition-transform duration-300';
+                    productCard.innerHTML = `
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-auto rounded-lg mb-4">
                         <div>
-                            <div class="font-semibold">${prod.name} x ${qty}</div>
-                            <div class="text-xs text-gray-400">$${Number(prod.price).toFixed(2)} each</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-semibold">$${(prod.price * qty).toFixed(2)}</div>
-                            <button class="text-red-400 remove-btn text-sm" data-id="${id}">Remove</button>
+                            <h4 class="text-xl font-bold text-gray-800 mb-1">${product.name}</h4>
+                            <p class="text-lg font-semibold text-gray-600 mb-4">$${product.price.toFixed(2)}</p>
+                            <button data-product-id="${product.id}" class="add-to-cart-btn w-full py-2 bg-blue-500 text-white font-semibold rounded-full shadow-md hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50">
+                                Add to Cart
+                            </button>
                         </div>
                     `;
-                    if (orderList) orderList.appendChild(row);
+                    productGrid.appendChild(productCard);
                 });
-                document.querySelectorAll('.remove-btn').forEach(b => b.addEventListener('click', e => removeFromCart(e.currentTarget.dataset.id)));
-                if(payBtn) payBtn.disabled = false;
             }
-            const totalWithFee = total + PLATFORM_FEE_AMOUNT_USDC;
-            if(totalUsdSpan) totalUsdSpan.textContent = '$' + total.toFixed(2);
-            if(totalUsdcSpan) totalUsdcSpan.textContent = totalWithFee.toFixed(2) + ' USDC';
-        }
 
-        // --- Admin-specific functions
-        function renderAdminDashboard() {
-            if (userIdDisplay) userIdDisplay.textContent = `Your unique user ID: ${userId}`;
-            storeNameInput.value = config.storeName || '';
-            storeLogoInput.value = config.storeLogo || '';
-            usdcWalletAddressInput.value = config.usdcWalletAddress || '';
-            const storeTitleDisplay = document.getElementById('store-title-display');
-            if(storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
-            renderAdminMenuItems();
-            renderAdminOrders();
-        }
-
-        function renderAdminMenuItems() {
-            const loadingAdminMenuItems = document.getElementById('loading-menu-items');
-            if (loadingAdminMenuItems) {
-                loadingAdminMenuItems.classList.add('hidden');
-            }
-            if(menuItemsList) menuItemsList.innerHTML = '';
-            if (!config.products || config.products.length === 0) {
-              if(menuItemsList) menuItemsList.innerHTML = '<div class="p-4 text-center text-gray-500">No menu items configured.</div>';
-                return;
-            }
-            config.products.forEach((p) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'bg-gray-700 p-4 rounded-lg flex items-center justify-between';
-                itemDiv.innerHTML = `
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-lg">${p.name}</h4>
-                        <p class="text-sm text-gray-300">${p.description}</p>
-                        <p class="text-yellow-400 font-semibold">$${Number(p.price).toFixed(2)}</p>
-                    </div>
-                    <button data-id="${p.id}" class="remove-product-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition">Remove</button>
-                `;
-                if(menuItemsList) menuItemsList.appendChild(itemDiv);
-            });
-            document.querySelectorAll('.remove-product-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const productId = e.target.dataset.id;
-                    const productRef = doc(db, `artifacts/${appId}/users/${userId}/products/${productId}`);
-                    try {
-                        await deleteDoc(productRef);
-                        showModal('Success', 'Product removed successfully.');
-                    } catch (error) {
-                        showModal('Error', 'Failed to remove product.');
-                        console.error("Error removing product:", error);
-                    }
-                });
-            });
-        }
-        
-        function renderAdminOrders() {
-            const loadingOrders = document.getElementById('loading-orders');
-            if(loadingOrders) {
-                loadingOrders.classList.add('hidden');
-            }
-            if(ordersList) ordersList.innerHTML = '';
-            if (!config.orders || config.orders.length === 0) {
-              if(ordersList) ordersList.innerHTML = '<div class="p-4 text-center text-gray-500">No orders have been placed.</div>';
-                return;
-            }
-            config.orders.forEach(order => {
-                const orderDiv = document.createElement('div');
-                orderDiv.className = 'bg-gray-700 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between';
-                orderDiv.innerHTML = `
-                    <div class="flex-grow mb-4 md:mb-0">
-                        <p class="font-bold">Order ID: ${order.id}</p>
-                        <p class="text-sm text-gray-300">Total: $${Number(order.total).toFixed(2)}</p>
-                        <p class="text-sm text-gray-300">Timestamp: ${order.timestamp}</p>
-                        <ul class="list-disc list-inside mt-2 text-sm text-gray-400">
-                            ${order.items.map(item => `<li>${item.name} x ${item.quantity}</li>`).join('')}
-                        </ul>
-                    </div>
-                    <div>
-                        <label for="status-${order.id}" class="block text-sm font-medium text-gray-300 mb-1">Status:</label>
-                        <select id="status-${order.id}" data-id="${order.id}" class="order-status-select p-2 rounded-lg text-black">
-                            <option value="new">New</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="ready_for_pickup">Ready for Pickup</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
-                `;
-                if(ordersList) ordersList.appendChild(orderDiv);
-                const select = document.getElementById(`status-${order.id}`);
-                if (select) select.value = order.status;
-                if (select) select.addEventListener('change', async (e) => {
-                    const orderId = e.target.dataset.id;
-                    const newStatus = e.target.value;
-                    const orderRef = doc(db, `artifacts/${appId}/users/${userId}/orders/${orderId}`);
-                    try {
-                        await updateDoc(orderRef, { status: newStatus });
-                        showModal('Success', `Order ${orderId} status updated to: ${newStatus}`);
-                    } catch (error) {
-                        showModal('Error', 'Failed to update order status.');
-                        console.error("Error updating order status:", error);
-                    }
-                });
-            });
-        }
-
-        // --- Payment functions
-        async function switchNetworkToPolygon() {
-            try {
-                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: polygonChainId }]});
-            } catch (err) {
-                if (err.code === 4902) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params:[{
-                                chainId: polygonChainId,
-                                chainName: 'Polygon Mainnet',
-                                rpcUrls: ['https://polygon-rpc.com/'],
-                                nativeCurrency: {name:'MATIC',symbol:'MATIC',decimals:18},
-                                blockExplorerUrls:['https://polygonscan.com/']
-                            }]
-                        });
-                    } catch (addError) {
-                        showModal('Error', 'Failed to add Polygon network to MetaMask.');
-                        throw addError;
-                    }
+            // --- Function to Update Cart Display ---
+            function updateCart() {
+                const total = cart.reduce((sum, item) => sum + item.price, 0);
+                cartItemCount.textContent = `Your Cart: ${cart.length} item${cart.length === 1 ? '' : 's'}`;
+                cartTotal.textContent = `Total: $${total.toFixed(2)}`;
+                checkoutBtn.disabled = cart.length === 0; // Disable checkout if cart is empty
+                if (cart.length === 0) {
+                    checkoutBtn.classList.add('bg-gray-400', 'hover:bg-gray-400');
+                    checkoutBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
                 } else {
-                    showModal('Error', 'Failed to switch to Polygon network.');
-                    throw err;
+                    checkoutBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                    checkoutBtn.classList.remove('bg-gray-400', 'hover:bg-gray-400');
                 }
             }
-        }
-        
-        async function processPayment() {
-            const totalUSD = parseFloat(totalUsdSpan.textContent.replace('$', '')) || 0;
-            if (totalUSD <= 0) {
-                showModal('Error', 'Your cart is empty.');
-                return;
-            }
 
-            if (typeof window.ethereum === 'undefined') {
-                showModal('Error', 'Please install MetaMask to proceed with payment.');
-                return;
-            }
-            
-            let orderId;
-            try {
-                payBtn.textContent = 'Processing...';
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                await switchNetworkToPolygon();
-
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const usdcContract = new ethers.Contract(USDC_POLYGON_ADDRESS, usdcAbi, signer);
-
-                // Payment for the platform fee
-                const platformFeeAmount = ethers.parseUnits(PLATFORM_FEE_AMOUNT_USDC.toFixed(2), 6);
-                const platformFeeTx = await usdcContract.transfer(PLATFORM_FEE_ADDRESS, platformFeeAmount);
-                await platformFeeTx.wait();
-
-                // Payment for the store
-                const storePaymentAmount = ethers.parseUnits(totalUSD.toFixed(2), 6);
-                const storePaymentTx = await usdcContract.transfer(config.usdcWalletAddress, storePaymentAmount);
-                await storePaymentTx.wait();
-
-                // Add the order to Firestore
-                const ordersCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
-                const order = {
-                    timestamp: new Date().toLocaleString(),
-                    items: Object.keys(cart).map(id => {
-                        const p = (config.products || []).find(x => x.id === id);
-                        return { id, name: p.name, price: p.price, quantity: cart[id] };
-                    }),
-                    total: totalUSD,
-                    status: 'new'
-                };
-                const docRef = await addDoc(ordersCollectionRef, order);
-                orderId = docRef.id;
-
-                showOrderStatusModal(orderId, 'new');
-
-                // Listen for status changes on this specific order
-                const orderDocRef = doc(db, `artifacts/${appId}/users/${userId}/orders/${orderId}`);
-                onSnapshot(orderDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const updatedStatus = docSnap.data().status;
-                        updateOrderStatusModal(updatedStatus);
-                    }
-                });
-
-                // Reset the cart and UI
-                cart = {};
-                updateCartUI();
-                
-            } catch (err) {
-                console.error(err);
-                showModal('Payment Failed', `An error occurred: ${err.message}`);
-            } finally {
-                payBtn.textContent = 'Pay with Polygon';
-            }
-        }
-
-        // --- 5. Firestore & Core Functions ---
-        function initializeFirestoreListeners() {
-            // Listen for store info changes
-            const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
-            onSnapshot(storeInfoRef, (doc) => {
-                if (doc.exists()) {
-                    config.storeName = doc.data().storeName;
-                    config.storeLogo = doc.data().storeLogo;
-                    config.usdcWalletAddress = doc.data().usdcWalletAddress;
-                    if (kioskStoreTitle) kioskStoreTitle.textContent = config.storeName || 'The Food Spot';
-                    if (isLoggedIn) {
-                        storeNameInput.value = config.storeName || '';
-                        storeLogoInput.value = config.storeLogo || '';
-                        usdcWalletAddressInput.value = config.usdcWalletAddress || '';
-                        const storeTitleDisplay = document.getElementById('store-title-display');
-                        if (storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
-                    }
-                }
-            }, (error) => { console.error("Error fetching store info:", error); });
-
-            // Listen for menu items changes
-            const productsRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
-            onSnapshot(productsRef, (querySnapshot) => {
-                config.products = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderKioskMenuItems();
-                if (isLoggedIn) renderAdminMenuItems();
-            }, (error) => { console.error("Error fetching products:", error); });
-
-            // Listen for orders changes (only for admin dashboard)
-            const ordersRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
-            onSnapshot(ordersRef, (querySnapshot) => {
-                config.orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (isLoggedIn) renderAdminOrders();
-            }, (error) => { console.error("Error fetching orders:", error); });
-        }
-        
-        // --- 6. Event Listeners & Initialization ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                console.log("Authenticated with user ID:", user.uid);
-                userId = user.uid;
-                isAuthReady = true;
-                initializeFirestoreListeners();
-                showPage('start-page');
-            } else {
-                console.log("No user authenticated. Signing in anonymously.");
-                try {
-                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                    if (token) {
-                         await signInWithCustomToken(auth, token);
-                    } else {
-                         await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Authentication error:", error);
-                }
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Start Page buttons
-            // --- FIX: The previous code was missing the event listeners inside the DOMContentLoaded block
-            if(startKioskBtn) startKioskBtn.addEventListener('click', () => {
-                console.log('Customer Kiosk button clicked');
-                showPage('kiosk-page');
-            });
-            if(startAdminBtn) startAdminBtn.addEventListener('click', () => {
-                console.log('Admin Dashboard button clicked');
-                showPage('admin-page');
-            });
-            
-            // Kiosk page buttons
-            if(kioskBackBtn) kioskBackBtn.addEventListener('click', () => {
-                console.log('Back button clicked from Kiosk');
-                showPage('start-page');
-            });
-            if(payBtn) payBtn.addEventListener('click', processPayment);
-            
-            // Admin page buttons
-            if(adminBackBtn) adminBackBtn.addEventListener('click', () => {
-                console.log('Back button clicked from Admin');
-                isLoggedIn = false;
-                adminLoginPasswordInput.value = '';
-                adminDashboardContent.classList.add('hidden');
-                adminLogin.classList.remove('hidden');
-                showPage('start-page');
-            });
-            if(loginBtn) loginBtn.addEventListener('click', () => {
+            // --- Firestore Functions ---
+            async function saveOrder(orderData) {
                 if (!isAuthReady) {
-                    showModal('Error', 'Application is not ready. Please wait a moment and try again.');
+                    console.error("Firebase not ready. Cannot save order.");
                     return;
                 }
-                if (adminLoginPasswordInput.value === hardcodedAdminPassword) {
-                    isLoggedIn = true;
-                    adminLogin.classList.add('hidden');
-                    adminDashboardContent.classList.remove('hidden');
-                    renderAdminDashboard();
-                    showModal('Success', 'Logged in as Admin.');
+                try {
+                    const ordersCollectionRef = collection(db, `artifacts/${appId}/public/data/giftShopOrders`);
+                    await addDoc(ordersCollectionRef, orderData);
+                    console.log("Order saved successfully!");
+                } catch (e) {
+                    console.error("Error adding document: ", e);
+                }
+            }
+
+            function setupOrderListener() {
+                if (!isAuthReady) {
+                    console.error("Firebase not ready. Cannot set up order listener.");
+                    return;
+                }
+                const ordersCollectionRef = collection(db, `artifacts/${appId}/public/data/giftShopOrders`);
+                // Note: orderBy() is avoided as per instructions to prevent index issues.
+                // Data will be sorted in memory if needed.
+                onSnapshot(ordersCollectionRef, (snapshot) => {
+                    ordersList.innerHTML = ''; // Clear current list
+                    if (snapshot.empty) {
+                        noOrdersMessage.classList.remove('hidden');
+                    } else {
+                        noOrdersMessage.classList.add('hidden');
+                        snapshot.forEach(doc => {
+                            const order = doc.data();
+                            const orderId = doc.id; // Firestore document ID
+                            const orderCard = document.createElement('div');
+                            orderCard.className = 'bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200';
+                            let itemsHtml = order.items.map(item => `<li>${item.name} ($${item.price.toFixed(2)})</li>`).join('');
+
+                            orderCard.innerHTML = `
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-lg font-bold text-gray-800">Order ID: <span class="font-mono text-sm text-gray-600">${order.orderId || orderId}</span></h4>
+                                    <span class="text-sm text-gray-500">${new Date(order.timestamp).toLocaleString()}</span>
+                                </div>
+                                <p class="text-gray-700 mb-2">Total: <span class="font-bold text-lg">$${order.total.toFixed(2)}</span></p>
+                                <p class="text-gray-700 mb-2">Status: <span class="${order.status === 'Pending Payment' ? 'status-pending' : 'status-completed'}">${order.status}</span></p>
+                                <p class="text-gray-700">Items:</p>
+                                <ul class="list-disc list-inside text-gray-600 text-sm mb-3">
+                                    ${itemsHtml}
+                                </ul>
+                                <button data-order-id="${orderId}" data-current-status="${order.status}" class="mark-as-paid-btn px-4 py-2 bg-indigo-500 text-white text-sm rounded-full hover:bg-indigo-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 ${order.status === 'Completed' ? 'opacity-50 cursor-not-allowed' : ''}" ${order.status === 'Completed' ? 'disabled' : ''}>
+                                    ${order.status === 'Completed' ? 'Paid' : 'Mark as Paid'}
+                                </button>
+                            `;
+                            ordersList.appendChild(orderCard);
+                        });
+                    }
+                }, (error) => {
+                    console.error("Error listening to orders:", error);
+                });
+            }
+
+            async function updateOrderStatus(orderDocId, newStatus) {
+                if (!isAuthReady) {
+                    console.error("Firebase not ready. Cannot update order status.");
+                    return;
+                }
+                try {
+                    const orderRef = doc(db, `artifacts/${appId}/public/data/giftShopOrders`, orderDocId);
+                    await updateDoc(orderRef, { status: newStatus });
+                    console.log(`Order ${orderDocId} status updated to ${newStatus}`);
+                } catch (e) {
+                    console.error("Error updating document: ", e);
+                }
+            }
+
+
+            // --- Web3 Functionality ---
+            async function connectWallet() {
+                if (typeof window.ethereum !== 'undefined') {
+                    try {
+                        // Request account access
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        provider = new ethers.providers.Web3Provider(window.ethereum);
+                        signer = provider.getSigner();
+                        currentAddress = await signer.getAddress();
+                        walletAddressSpan.textContent = `${currentAddress.substring(0, 6)}...${currentAddress.substring(currentAddress.length - 4)}`;
+                        accountInfoElement.classList.remove('hidden');
+                        
+                        connectWalletBtn.classList.add('hidden');
+                        enterShopBtn.classList.remove('hidden');
+
+                        console.log("Wallet connected:", currentAddress);
+                    } catch (error) {
+                        console.error("User rejected wallet connection:", error);
+                    }
                 } else {
-                    showModal('Error', 'Incorrect password.');
+                    alert("Please install a Web3 wallet like MetaMask to use this feature.");
                 }
-            });
-            
-            if(logoutBtn) logoutBtn.addEventListener('click', () => {
-                isLoggedIn = false;
-                adminLoginPasswordInput.value = '';
-                adminDashboardContent.classList.add('hidden');
-                adminLogin.classList.remove('hidden');
-                showPage('start-page');
-            });
-            
-            if(saveStoreInfoBtn) saveStoreInfoBtn.addEventListener('click', async () => {
-                if (!isAuthReady) return;
-                const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
-                const newStoreInfo = {
-                    storeName: storeNameInput.value,
-                    storeLogo: storeLogoInput.value,
-                    usdcWalletAddress: usdcWalletAddressInput.value
-                };
-                try {
-                    await setDoc(storeInfoRef, newStoreInfo, { merge: true });
-                    showModal('Success', 'Store information updated!');
-                } catch (error) {
-                    showModal('Error', 'Failed to save store info.');
-                    console.error("Error saving store info:", error);
-                }
-            });
-            
-            if(addProductBtn) addProductBtn.addEventListener('click', async () => {
-                if (!isAuthReady) return;
-                const newProduct = {
-                    name: productNameInput.value,
-                    price: parseFloat(productPriceInput.value),
-                    description: productDescriptionInput.value,
-                    imageUrl: productImageUrlInput.value
-                };
-                if (!newProduct.name || isNaN(newProduct.price)) {
-                    showModal('Error', 'Please enter a valid product name and price.');
+            }
+
+            async function sendMatic(toAddress, amountInUSD) {
+                if (!signer) {
+                    alert("Please connect your wallet first.");
                     return;
                 }
-                const productsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
+                
                 try {
-                    await addDoc(productsCollectionRef, newProduct);
-                    showModal('Success', `${newProduct.name} added to the menu.`);
-                    productNameInput.value = '';
-                    productPriceInput.value = '';
-                    productDescriptionInput.value = '';
-                    productImageUrlInput.value = '';
+                    // In a real-world scenario, you would need to get the current MATIC to USD exchange rate
+                    // For this example, we'll use a fixed conversion factor
+                    const maticPrice = 0.50; // Example: 1 MATIC = $0.50
+                    const amountInMatic = amountInUSD / maticPrice;
+
+                    // Convert the amount to Wei (the smallest unit of MATIC)
+                    const amountInWei = ethers.utils.parseEther(amountInMatic.toString());
+
+                    // Create the transaction
+                    const tx = {
+                        to: toAddress,
+                        value: amountInWei
+                    };
+
+                    // Send the transaction and wait for the hash
+                    const txResponse = await signer.sendTransaction(tx);
+                    console.log("Transaction sent:", txResponse.hash);
+                    
+                    // You can wait for the transaction to be mined for confirmation
+                    // await txResponse.wait();
+                    // console.log("Transaction confirmed!");
+                    return txResponse.hash;
+
                 } catch (error) {
-                    showModal('Error', 'Failed to add product.');
-                    console.error("Error adding product:", error);
+                    console.error("Error sending transaction:", error);
+                    return null;
+                }
+            }
+
+
+            // --- Event Listeners ---
+            connectWalletBtn.addEventListener('click', connectWallet);
+            
+            enterShopBtn.addEventListener('click', () => {
+                showPage(storefrontPage);
+                renderProducts(); // Render products once the storefront is visible
+                updateCart(); // Initial cart state
+            });
+
+            adminLoginBtn.addEventListener('click', () => {
+                showPage(adminLoginPage);
+                adminPasswordInput.value = ''; // Clear password field
+                adminLoginError.classList.add('hidden'); // Hide error message
+            });
+
+            loginBtn.addEventListener('click', () => {
+                const enteredPassword = adminPasswordInput.value;
+                if (enteredPassword === ADMIN_PASSWORD) {
+                    showPage(adminDashboardPage);
+                    setupOrderListener(); // Start listening to orders when admin logs in
+                } else {
+                    adminLoginError.classList.remove('hidden');
                 }
             });
 
-            // Modal buttons
-            if(modalCloseBtn) modalCloseBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
-            if(orderStatusCloseBtn) orderStatusCloseBtn.addEventListener('click', () => orderStatusModal.classList.add('hidden'));
-        });
+            backToWelcomeFromStore.addEventListener('click', () => {
+                showPage(welcomePage);
+            });
+
+            backToWelcomeFromAdminLogin.addEventListener('click', () => {
+                showPage(welcomePage);
+            });
+
+            backToWelcomeFromAdminDashboard.addEventListener('click', () => {
+                showPage(welcomePage);
+            });
+
+
+            productGrid.addEventListener('click', (event) => {
+                if (event.target.classList.contains('add-to-cart-btn')) {
+                    const productId = event.target.dataset.productId;
+                    const productToAdd = products.find(p => p.id === productId);
+                    if (productToAdd) {
+                        cart.push(productToAdd);
+                        updateCart();
+                    }
+                }
+            });
+
+            checkoutBtn.addEventListener('click', async () => {
+                if (cart.length === 0) {
+                    return;
+                }
+
+                if (!currentAddress) {
+                    alert("Please connect your wallet to checkout.");
+                    return;
+                }
+
+                const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+
+                const txHash = await sendMatic(targetPolygonAddress, totalAmount);
+                
+                if (txHash) {
+                     const orderId = `order_${crypto.randomUUID()}`;
+                     const orderData = {
+                        orderId: orderId,
+                        items: cart.map(item => ({ id: item.id, name: item.name, price: item.price })),
+                        total: totalAmount,
+                        timestamp: new Date().toISOString(),
+                        status: 'Pending Payment', // Initial status
+                        cryptoTransactionHash: txHash, // Store the transaction hash
+                        customerWallet: currentAddress
+                    };
+                    await saveOrder(orderData); // Save order to Firestore
+
+                    orderTextElement.textContent = orderId;
+                    modal.classList.remove('hidden');
+                } else {
+                    alert("Crypto payment failed. Please try again.");
+                }
+
+            });
+
+            copyBtn.addEventListener('click', () => {
+                const orderId = orderTextElement.textContent;
+                const tempInput = document.createElement('textarea');
+                tempInput.value = orderId;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('bg-gray-500', 'hover:bg-gray-500');
+                    copyBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.classList.remove('bg-gray-500', 'hover:bg-gray-500');
+                        copyBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                } finally {
+                    document.body.removeChild(tempInput);
+                }
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                cart = []; // Reset cart for a new transaction
+                updateCart();
+            });
+
+            // Event listener for marking orders as paid in admin dashboard
+            ordersList.addEventListener('click', (event) => {
+                if (event.target.classList.contains('mark-as-paid-btn')) {
+                    const orderDocId = event.target.dataset.orderId;
+                    const currentStatus = event.target.dataset.currentStatus;
+                    if (currentStatus !== 'Completed') {
+                        updateOrderStatus(orderDocId, 'Completed');
+                    }
+                }
+            });
+
+            // Initialize Firebase when the script loads
+            initializeFirebase();
+        })();
     </script>
+
 </body>
 </html>
