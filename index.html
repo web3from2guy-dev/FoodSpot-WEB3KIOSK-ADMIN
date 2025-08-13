@@ -3,179 +3,416 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Vendor Admin Dashboard</title>
-    <!-- Tailwind CSS -->
+    <title>Your Food Spot - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Ethers.js for blockchain interaction (Updated to v6) -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
+<body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col">
 
-<!-- PAYWALL -->
-<div id="paywall" class="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-    <div id="status-message" class="hidden bg-blue-800 text-blue-200 p-4 rounded-lg mb-4 text-sm" role="alert">
-        Awaiting action...
+    <!-- Back button for Admin page -->
+    <header class="p-4">
+        <button onclick="window.location.href='start.html'" class="text-gray-400 hover:text-white transition">
+            <i class="fas fa-arrow-left"></i> Back to Start
+        </button>
+    </header>
+
+    <!-- === 2. ADMIN DASHBOARD === -->
+    <div id="admin-page" class="p-6 flex-grow max-w-5xl mx-auto w-full">
+        <div id="admin-login" class="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg mx-auto mt-20">
+            <h1 class="text-3xl font-bold mb-4 text-center">Admin Login</h1>
+            <p id="admin-status-message" class="mb-6 text-center text-gray-400">Loading admin status...</p>
+            <div class="mb-4">
+                <label for="adminLoginPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                <input 
+                    id="adminLoginPassword" 
+                    type="password" 
+                    placeholder="Enter password" 
+                    class="p-3 rounded-lg text-black w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
+                >
+            </div>
+            <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition duration-200">
+                Login
+            </button>
+        </div>
+
+        <div id="admin-dashboard-content" class="hidden">
+            <header class="flex justify-between items-center bg-gray-800 p-4 rounded-xl mb-6">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+                    <span id="store-title-display" class="text-lg text-yellow-400"></span>
+                </div>
+                <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">Logout</button>
+            </header>
+
+            <!-- Store Information Section -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4">Store Information</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="storeName" class="block text-sm font-medium text-gray-300 mb-2">Store Name</label>
+                        <input id="storeName" type="text" placeholder="e.g., Downtown Eats" class="p-3 rounded-lg text-black w-full">
+                    </div>
+                    <div>
+                        <label for="storeLogo" class="block text-sm font-medium text-gray-300 mb-2">Store Logo URL</label>
+                        <input id="storeLogo" type="text" placeholder="e.g., https://your-logo.com/logo.png" class="p-3 rounded-lg text-black w-full">
+                    </div>
+                    <button id="saveStoreInfoBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Save Store Info</button>
+                </div>
+            </div>
+
+            <!-- Menu Items Management Section -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4">Manage Menu Items</h2>
+                <div id="menu-items-list" class="space-y-4 mb-6">
+                    <div id="loading-menu-items" class="p-4 text-center text-gray-500">Loading menu items...</div>
+                </div>
+                <div class="mt-8 pt-6 border-t border-gray-700">
+                    <h3 class="text-xl font-bold mb-4">Add New Menu Item</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <input id="productName" type="text" placeholder="Product Name" class="p-3 rounded-lg text-black">
+                        <input id="productPrice" type="number" step="0.01" placeholder="Price (e.g., 9.99)" class="p-3 rounded-lg text-black">
+                        <textarea id="productDescription" placeholder="Product Description" class="p-3 rounded-lg text-black col-span-2"></textarea>
+                        <input id="productImageUrl" type="text" placeholder="Image URL (e.g., https://placehold.co/400x200)" class="p-3 rounded-lg text-black col-span-2">
+                    </div>
+                    <button id="addProductBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold transition">Add Product</button>
+                </div>
+            </div>
+
+            <!-- Orders Management Section -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">Orders</h2>
+                <div id="orders-list" class="space-y-4">
+                    <div id="loading-orders" class="p-4 text-center text-gray-500">Loading orders...</div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 max-w-lg text-center">
-        <h2 class="font-bold text-lg mb-2">Payment Required</h2>
-        <p>This application only accepts a **$5.00** payment in **USDC** on the **Polygon Network**.</p>
-        <p class="mt-2">Transactions sent in any other token or network will be lost and cannot be recovered.</p>
-    </div>
-    <button id="connectWallet" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg shadow-lg font-bold">
-        Connect Wallet & Pay
-    </button>
-</div>
-
-<!-- ADMIN DASHBOARD -->
-<div id="dashboard" class="hidden p-6">
-    <h1 class="text-3xl font-bold mb-4">Welcome Admin</h1>
-    <p class="mb-6">This is your admin dashboard after successful payment.</p>
-
-    <!-- Example Password Creation Section -->
-    <div class="bg-gray-800 p-4 rounded-lg mb-4">
-        <h2 class="text-xl mb-2">Create New Admin Password</h2>
-        <input id="adminPassword" type="password" placeholder="Enter new password" class="p-2 rounded text-black w-full mb-2">
-        <button class="bg-green-600 px-4 py-2 rounded">Save Password</button>
-    </div>
-
-    <!-- Example Product Upload Section -->
-    <div class="bg-gray-800 p-4 rounded-lg">
-        <h2 class="text-xl mb-2">Upload Product</h2>
-        <input type="text" placeholder="Product Name" class="p-2 rounded text-black w-full mb-2">
-        <input type="file" class="p-2 rounded text-black w-full mb-2">
-        <button class="bg-blue-600 px-4 py-2 rounded">Upload</button>
-    </div>
-</div>
-
-<script>
-    // --- DOM Elements and State ---
-    const connectWalletBtn = document.getElementById("connectWallet");
-    const paywallDiv = document.getElementById("paywall");
-    const dashboardDiv = document.getElementById("dashboard");
-    const statusMessageDiv = document.getElementById("status-message");
-
-    // --- Configuration ---
-    const USDC_POLYGON_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
-    const PAYMENT_AMOUNT = "5.00"; // Amount in USDC as a string
-    const RECEIVING_WALLET = "YOUR_WALLET_ADDRESS_HERE"; // Replace with your wallet
-
-    // The ABI for the `transfer` function
-    const usdcAbi = ["function transfer(address to, uint256 amount) returns (bool)"];
-    const polygonChainId = '0x89'; // 137 in hex
-
-    // --- Utility Functions ---
-    const updateStatus = (message, type = 'info') => {
-        statusMessageDiv.textContent = message;
-        statusMessageDiv.classList.remove('hidden');
-        statusMessageDiv.classList.remove('bg-blue-800', 'bg-green-800', 'bg-yellow-800', 'bg-red-800', 
-                                         'text-blue-200', 'text-green-200', 'text-yellow-200', 'text-red-200');
-        
-        switch (type) {
-            case 'info':
-                statusMessageDiv.classList.add('bg-blue-800', 'text-blue-200');
-                break;
-            case 'success':
-                statusMessageDiv.classList.add('bg-green-800', 'text-green-200');
-                break;
-            case 'warning':
-                statusMessageDiv.classList.add('bg-yellow-800', 'text-yellow-200');
-                break;
-            case 'error':
-                statusMessageDiv.classList.add('bg-red-800', 'text-red-200');
-                break;
-        }
-    };
     
-    // --- Main Logic ---
-    async function payWithUSDC() {
-        if (typeof window.ethereum === "undefined") {
-            updateStatus("Please install MetaMask to proceed.", "error");
-            return;
-        }
+    <!-- === Message Modal === -->
+    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
+            <p id="modal-message" class="mb-6"></p>
+            <button id="modal-close-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">OK</button>
+        </div>
+    </div>
 
-        connectWalletBtn.disabled = true;
-        updateStatus("Connecting to MetaMask...", "info");
+    <script type="module">
+        // --- Import Firebase SDK functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        try {
-            // Ethers v6 syntax for provider and signer
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
+        // --- 1. Global State & Configuration ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        let config = {
+            storeName: 'The Food Spot',
+            storeLogo: '',
+            products: [],
+            orders: []
+        };
+        let adminPassword = null;
+        let isLoggedIn = false;
+        let isAuthReady = false;
 
-            // Ensure Polygon Network
-            await switchNetworkToPolygon();
+        // --- Firebase Initialization
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let userId = '';
 
-            const usdcContract = new ethers.Contract(USDC_POLYGON_ADDRESS, usdcAbi, signer);
+        // --- 2. DOM Elements ---
+        const adminLogin = document.getElementById('admin-login');
+        const adminDashboardContent = document.getElementById('admin-dashboard-content');
+        const adminStatusMessage = document.getElementById('admin-status-message');
+        
+        // Buttons
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
 
-            const decimals = 6;
-            // Ethers v6 syntax for parsing units
-            const amountInUnits = ethers.parseUnits(PAYMENT_AMOUNT, decimals);
+        // Admin fields
+        const adminLoginPasswordInput = document.getElementById('adminLoginPassword');
+        const storeNameInput = document.getElementById('storeName');
+        const storeLogoInput = document.getElementById('storeLogo');
+        const saveStoreInfoBtn = document.getElementById('saveStoreInfoBtn');
+        const productNameInput = document.getElementById('productName');
+        const productPriceInput = document.getElementById('productPrice');
+        const productDescriptionInput = document.getElementById('productDescription');
+        const productImageUrlInput = document.getElementById('productImageUrl');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const menuItemsList = document.getElementById('menu-items-list');
+        const ordersList = document.getElementById('orders-list');
+        
+        // Modals
+        const messageModal = document.getElementById('message-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
 
-            updateStatus("Please confirm the transaction in MetaMask...", "warning");
-            
-            const tx = await usdcContract.transfer(RECEIVING_WALLET, amountInUnits);
-            await tx.wait();
-
-            updateStatus("Payment successful! Accessing dashboard...", "success");
-            localStorage.setItem("paymentComplete", "true");
-            showDashboard();
-            
-        } catch (err) {
-            updateStatus(`Payment failed: ${err.message}`, "error");
-            console.error(err);
-        } finally {
-            connectWalletBtn.disabled = false;
-        }
-    }
-
-    async function switchNetworkToPolygon() {
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: polygonChainId }],
-            });
-        } catch (switchError) {
-            if (switchError.code === 4902) {
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: polygonChainId,
-                            chainName: 'Polygon Mainnet',
-                            rpcUrls: ['https://polygon-rpc.com/'],
-                            nativeCurrency: {
-                                name: 'MATIC',
-                                symbol: 'MATIC',
-                                decimals: 18
-                            },
-                            blockExplorerUrls: ['https://polygonscan.com/']
-                        }],
-                    });
-                } catch (addError) {
-                    throw new Error('Failed to add Polygon network to MetaMask.');
+        // --- 3. Firestore & Core Functions ---
+        function initializeFirestoreListeners() {
+            // Fetch initial password and listen for updates
+            const passwordRef = doc(db, `artifacts/${appId}/users/${userId}/config/adminPassword`);
+            onSnapshot(passwordRef, (docSnap) => {
+                adminPassword = docSnap.exists() ? docSnap.data().value : null;
+                if (adminStatusMessage) { 
+                  if (adminPassword) {
+                      adminStatusMessage.textContent = 'Enter your password to continue.';
+                      adminLoginPasswordInput.placeholder = "Enter existing password";
+                  } else {
+                      adminStatusMessage.textContent = 'This is the first time. Create a new password.';
+                      adminLoginPasswordInput.placeholder = "Create new password";
+                  }
                 }
-            } else {
-                throw new Error('Failed to switch to Polygon network.');
+            }, (error) => { console.error("Error fetching password:", error); });
+
+            // Listen for store info changes
+            const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
+            onSnapshot(storeInfoRef, (doc) => {
+                if (doc.exists()) {
+                    config.storeName = doc.data().storeName;
+                    config.storeLogo = doc.data().storeLogo;
+                    const storeTitleDisplay = document.getElementById('store-title-display');
+                    if (storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
+                }
+            }, (error) => { console.error("Error fetching store info:", error); });
+
+            // Listen for menu items changes
+            const productsRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
+            onSnapshot(productsRef, (querySnapshot) => {
+                config.products = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (isLoggedIn) renderAdminMenuItems();
+            }, (error) => { console.error("Error fetching products:", error); });
+
+            // Listen for orders changes (only for admin dashboard)
+            const ordersRef = collection(db, `artifacts/${appId}/users/${userId}/orders`);
+            onSnapshot(ordersRef, (querySnapshot) => {
+                config.orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (isLoggedIn) renderAdminOrders();
+            }, (error) => { console.error("Error fetching orders:", error); });
+        }
+        
+        // --- UI State Management functions
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            messageModal.classList.remove('hidden');
+        }
+        
+        // --- Admin-specific functions
+        async function loginAdmin() {
+            if (!isAuthReady) {
+                showModal('Error', 'Application is not ready. Please wait a moment and try again.');
+                return;
+            }
+            const password = adminLoginPasswordInput.value;
+            const passwordRef = doc(db, `artifacts/${appId}/users/${userId}/config/adminPassword`);
+            
+            console.log("Attempting login...");
+            console.log("Input password:", password);
+            console.log("Stored password:", adminPassword);
+
+            if (adminPassword === null) { // First time setup
+                if (password.length > 0) {
+                    await setDoc(passwordRef, { value: password });
+                    isLoggedIn = true;
+                    adminLogin.classList.add('hidden');
+                    adminDashboardContent.classList.remove('hidden');
+                    renderAdminDashboard();
+                    showModal('Setup Complete!', 'Admin password saved successfully.');
+                } else {
+                    showModal('Error', 'Please enter a password.');
+                }
+            } else { // Subsequent logins
+                if (password === adminPassword) {
+                    isLoggedIn = true;
+                    adminLogin.classList.add('hidden');
+                    adminDashboardContent.classList.remove('hidden');
+                    renderAdminDashboard();
+                    showModal('Success', 'Logged in as Admin.');
+                } else {
+                    showModal('Error', 'Incorrect password.');
+                }
             }
         }
-    };
-
-    function showDashboard() {
-        paywallDiv.classList.add("hidden");
-        dashboardDiv.classList.remove("hidden");
-    }
-
-    // --- Event Listeners ---
-    document.addEventListener("DOMContentLoaded", () => {
-        connectWalletBtn.addEventListener("click", payWithUSDC);
-        // Skip paywall if already paid
-        if (localStorage.getItem("paymentComplete") === "true") {
-            showDashboard();
+        
+        function renderAdminDashboard() {
+            storeNameInput.value = config.storeName || '';
+            storeLogoInput.value = config.storeLogo || '';
+            const storeTitleDisplay = document.getElementById('store-title-display');
+            if(storeTitleDisplay) storeTitleDisplay.textContent = config.storeName || 'Store Title';
+            renderAdminMenuItems();
+            renderAdminOrders();
         }
-    });
-</script>
 
+        function renderAdminMenuItems() {
+            const loadingAdminMenuItems = document.getElementById('loading-menu-items');
+            if (loadingAdminMenuItems) {
+                loadingAdminMenuItems.classList.add('hidden');
+            }
+            menuItemsList.innerHTML = '';
+            if (!config.products || config.products.length === 0) {
+                menuItemsList.innerHTML = '<div class="p-4 text-center text-gray-500">No menu items configured.</div>';
+                return;
+            }
+            config.products.forEach((p) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'bg-gray-700 p-4 rounded-lg flex items-center justify-between';
+                itemDiv.innerHTML = `
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-lg">${p.name}</h4>
+                        <p class="text-sm text-gray-300">${p.description}</p>
+                        <p class="text-yellow-400 font-semibold">$${Number(p.price).toFixed(2)}</p>
+                    </div>
+                    <button data-id="${p.id}" class="remove-product-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition">Remove</button>
+                `;
+                menuItemsList.appendChild(itemDiv);
+            });
+            document.querySelectorAll('.remove-product-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const productId = e.target.dataset.id;
+                    const productRef = doc(db, `artifacts/${appId}/users/${userId}/products/${productId}`);
+                    try {
+                        await deleteDoc(productRef);
+                        showModal('Success', 'Product removed successfully.');
+                    } catch (error) {
+                        showModal('Error', 'Failed to remove product.');
+                        console.error("Error removing product:", error);
+                    }
+                });
+            });
+        }
+        
+        function renderAdminOrders() {
+            const loadingOrders = document.getElementById('loading-orders');
+            if(loadingOrders) {
+                loadingOrders.classList.add('hidden');
+            }
+            ordersList.innerHTML = '';
+            if (!config.orders || config.orders.length === 0) {
+                ordersList.innerHTML = '<div class="p-4 text-center text-gray-500">No orders have been placed.</div>';
+                return;
+            }
+            config.orders.forEach(order => {
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'bg-gray-700 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between';
+                orderDiv.innerHTML = `
+                    <div class="flex-grow mb-4 md:mb-0">
+                        <p class="font-bold">Order ID: ${order.id}</p>
+                        <p class="text-sm text-gray-300">Total: $${Number(order.total).toFixed(2)}</p>
+                        <p class="text-sm text-gray-300">Timestamp: ${order.timestamp}</p>
+                        <ul class="list-disc list-inside mt-2 text-sm text-gray-400">
+                            ${order.items.map(item => `<li>${item.name} x ${item.quantity}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div>
+                        <label for="status-${order.id}" class="block text-sm font-medium text-gray-300 mb-1">Status:</label>
+                        <select id="status-${order.id}" data-id="${order.id}" class="order-status-select p-2 rounded-lg text-black">
+                            <option value="new">New</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="ready_for_pickup">Ready for Pickup</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                `;
+                ordersList.appendChild(orderDiv);
+                const select = document.getElementById(`status-${order.id}`);
+                if (select) select.value = order.status;
+                if (select) select.addEventListener('change', async (e) => {
+                    const orderId = e.target.dataset.id;
+                    const newStatus = e.target.value;
+                    const orderRef = doc(db, `artifacts/${appId}/users/${userId}/orders/${orderId}`);
+                    try {
+                        await updateDoc(orderRef, { status: newStatus });
+                        showModal('Success', `Order ${orderId} status updated to: ${newStatus}`);
+                    } catch (error) {
+                        showModal('Error', 'Failed to update order status.');
+                        console.error("Error updating order status:", error);
+                    }
+                });
+            });
+        }
+
+        // --- 4. Event Listeners & Initialization ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("Authenticated with user ID:", user.uid);
+                userId = user.uid;
+                isAuthReady = true;
+                initializeFirestoreListeners();
+            } else {
+                console.log("No user authenticated. Signing in anonymously.");
+                try {
+                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (token) {
+                         await signInWithCustomToken(auth, token);
+                    } else {
+                         await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication error:", error);
+                }
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if(modalCloseBtn) modalCloseBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
+            if(loginBtn) loginBtn.addEventListener('click', loginAdmin);
+            
+            if(logoutBtn) logoutBtn.addEventListener('click', () => {
+                isLoggedIn = false;
+                adminDashboardContent.classList.add('hidden');
+                adminLogin.classList.remove('hidden');
+                window.location.href = 'start.html';
+            });
+            
+            if(saveStoreInfoBtn) saveStoreInfoBtn.addEventListener('click', async () => {
+                if (!isAuthReady) return;
+                const storeInfoRef = doc(db, `artifacts/${appId}/users/${userId}/config/storeInfo`);
+                const newStoreInfo = {
+                    storeName: storeNameInput.value,
+                    storeLogo: storeLogoInput.value
+                };
+                try {
+                    await setDoc(storeInfoRef, newStoreInfo);
+                    showModal('Success', 'Store information updated!');
+                } catch (error) {
+                    showModal('Error', 'Failed to save store info.');
+                    console.error("Error saving store info:", error);
+                }
+            });
+            
+            if(addProductBtn) addProductBtn.addEventListener('click', async () => {
+                if (!isAuthReady) return;
+                const newProduct = {
+                    name: productNameInput.value,
+                    price: parseFloat(productPriceInput.value),
+                    description: productDescriptionInput.value,
+                    imageUrl: productImageUrlInput.value
+                };
+                if (!newProduct.name || isNaN(newProduct.price)) {
+                    showModal('Error', 'Please enter a valid product name and price.');
+                    return;
+                }
+                const productsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/products`);
+                try {
+                    await addDoc(productsCollectionRef, newProduct);
+                    showModal('Success', `${newProduct.name} added to the menu.`);
+                    productNameInput.value = '';
+                    productPriceInput.value = '';
+                    productDescriptionInput.value = '';
+                    productImageUrlInput.value = '';
+                } catch (error) {
+                    showModal('Error', 'Failed to add product.');
+                    console.error("Error adding product:", error);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
